@@ -491,7 +491,7 @@
             UNIT_TYPES.forEach(type => {
                 rawAtk += type.baseAtk * game.units[type.id];
             });
-            if (rawAtk === 0) rawAtk = 5; // 初期攻撃力
+            if (rawAtk === 0) rawAtk = 6; // 初期攻撃力 (表示が3になるよう調整)
 
             let atkMulti = 1.0 + (game.orbs * 0.1); // オーブボーナス
             let goldMulti = 1.0;
@@ -564,7 +564,7 @@
             document.getElementById('gold-val').textContent = Math.floor(game.gold);
             document.getElementById('orb-val').textContent = game.orbs;
             document.getElementById('dps-val').textContent = Math.floor(stats.dps);
-            document.getElementById('multi-val').textContent = `x${(stats.dps / (UNIT_TYPES.reduce((s, t) => s + t.baseAtk * game.units[t.id], 0) || 5)).toFixed(1)}`;
+            document.getElementById('multi-val').textContent = `x${(stats.dps / (UNIT_TYPES.reduce((s, t) => s + t.baseAtk * game.units[t.id], 0) || 6)).toFixed(1)}`;
 
             UNIT_TYPES.forEach(type => {
                 const cost = getUnitCost(type.id, game.units[type.id]);
