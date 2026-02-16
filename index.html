@@ -4,103 +4,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idle Rogue Rich - 究極の放置RPG</title>
+    <title>Idle Rogue Rich - プロフェッショナル・アップデート</title>
     <style>
         :root {
             --bg-color: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --text-main: #f8fafc;
-            --text-dim: #94a3b8;
+            --card-bg: #1e293b;
             --accent-primary: #38bdf8;
             --accent-secondary: #818cf8;
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
             --danger: #ef4444;
             --success: #22c55e;
             --gold: #fbbf24;
             --orb: #a855f7;
-            --panel-bg: rgba(15, 23, 42, 0.6);
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background-color: var(--bg-color);
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: #020617;
             color: var(--text-main);
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
-            user-select: none;
         }
 
-        /* ゲーム全体のコンテナ */
         .game-wrapper {
-            width: 95%;
-            max-width: 480px;
-            height: 90vh;
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background-color: var(--bg-color);
             display: flex;
             flex-direction: column;
-            background: var(--card-bg);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            position: relative;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
         }
 
-        /* --- 上部：バトル実況エリア --- */
+        /* バトルエリア */
         .battle-screen {
-            flex: 0 0 240px;
+            flex: 0 0 40%;
             position: relative;
-            background: linear-gradient(to bottom, #1e293b, #0f172a);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            background: linear-gradient(to bottom, #1e1b4b, #0f172a);
             border-bottom: 2px solid rgba(255, 255, 255, 0.05);
             overflow: hidden;
         }
 
         .stage-info {
             position: absolute;
-            top: 15px;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            font-size: 1.5rem;
             font-weight: bold;
-            letter-spacing: 2px;
             color: var(--accent-primary);
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            z-index: 10;
         }
 
         .units-container {
+            height: 100%;
             display: flex;
             justify-content: space-around;
             align-items: center;
-            width: 100%;
-            margin-top: 20px;
-            position: relative;
+            padding: 0 20px;
         }
 
-        /* ユニットの視覚表現 */
         .entity {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 10px;
-            width: 120px;
-            transition: transform 0.5s ease;
+            transition: transform 0.2s;
         }
 
         .avatar {
             font-size: 3rem;
-            filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.5));
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
         }
 
-        /* 進軍アニメーション：上下に揺れる */
+        .hp-container {
+            width: 80px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hp-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.3s ease-out;
+        }
+
+        .hp-ally {
+            background-color: var(--success);
+        }
+
+        .hp-enemy {
+            background-color: var(--danger);
+        }
+
+        /* アニメーション */
         .walking {
-            animation: bobbing 0.6s infinite ease-in-out;
+            animation: bob 0.6s infinite ease-in-out;
         }
 
-        @keyframes bobbing {
+        @keyframes bob {
 
             0%,
             100% {
@@ -108,42 +120,36 @@
             }
 
             50% {
-                transform: translateY(-8px);
+                transform: translateY(-10px);
             }
         }
 
-        /* ダメージ・フラッシュ演出 */
         .hit-flash {
-            animation: flash 0.2s fast;
+            animation: flash 0.2s;
         }
 
         @keyframes flash {
-            0% {
+
+            0%,
+            100% {
                 filter: brightness(1);
             }
 
             50% {
-                filter: brightness(3) sepia(1) hue-rotate(-50deg);
-            }
-
-            100% {
-                filter: brightness(1);
+                filter: brightness(3) contrast(1.5);
             }
         }
 
-        /* ダメージ数字ポップアップ */
         .damage-popup {
             position: absolute;
-            color: #ff4757;
             font-weight: bold;
             font-size: 1.2rem;
             pointer-events: none;
-            animation: popup 0.8s ease-out forwards;
-            text-shadow: 0 0 4px black;
+            animation: floatUp 0.8s forwards;
             z-index: 100;
         }
 
-        @keyframes popup {
+        @keyframes floatUp {
             0% {
                 transform: translateY(0);
                 opacity: 1;
@@ -155,106 +161,98 @@
             }
         }
 
-        .hp-container {
-            width: 100%;
-            height: 10px;
-            background: #334155;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-
-        .hp-fill {
-            height: 100%;
-            transition: width 0.1s linear;
-        }
-
-        .hp-ally {
-            background: var(--accent-primary);
-            width: 100%;
-        }
-
-        .hp-enemy {
-            background: var(--danger);
-            width: 100%;
-        }
-
-        /* --- 下部：管理・強化エリア --- */
+        /* 管理エリア */
         .management-area {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 10px;
-            background: var(--panel-bg);
+            background: var(--bg-color);
+            padding: 15px;
             overflow: hidden;
         }
 
-        /* タブメニュー */
         .tabs {
             display: flex;
-            gap: 5px;
-            margin-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 15px;
         }
 
         .tab-btn {
             flex: 1;
             padding: 10px;
             background: rgba(255, 255, 255, 0.05);
-            border: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: var(--text-dim);
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            font-weight: bold;
+            font-size: 0.85rem;
             transition: all 0.2s;
         }
 
         .tab-btn.active {
             background: var(--accent-primary);
             color: var(--bg-color);
+            border-color: var(--accent-primary);
+            font-weight: bold;
         }
 
         .tab-content {
             display: none;
-            flex-direction: column;
-            gap: 10px;
+            flex: 1;
             overflow-y: auto;
             padding-right: 5px;
         }
 
         .tab-content.active {
             display: flex;
+            flex-direction: column;
         }
 
-        /* スクロールバーの美化 */
-        .tab-content::-webkit-scrollbar {
-            width: 4px;
+        /* ショップヘッダー */
+        .shop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 0 5px;
         }
 
-        .tab-content::-webkit-scrollbar-thumb {
+        .shop-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--accent-primary);
+        }
+
+        .toggle-btn {
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        /* カード風アイテム */
+        .toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* カード類 */
         .item-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            background: var(--card-bg);
+            border-radius: 16px;
             padding: 12px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
             transition: transform 0.2s;
         }
 
-        .item-card:active {
-            transform: scale(0.98);
-        }
-
         .item-icon {
-            font-size: 1.8rem;
-            width: 40px;
-            text-align: center;
+            font-size: 2rem;
         }
 
         .item-info {
@@ -262,86 +260,141 @@
         }
 
         .item-name {
-            display: block;
             font-weight: bold;
-            font-size: 0.95rem;
+            display: block;
+            margin-bottom: 4px;
         }
 
         .item-desc {
-            display: block;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--text-dim);
         }
 
         .buy-btn {
-            background: var(--accent-primary);
-            color: var(--bg-color);
+            padding: 8px 16px;
+            background: var(--accent-secondary);
             border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
+            border-radius: 10px;
+            color: white;
             font-weight: bold;
             cursor: pointer;
-            min-width: 80px;
+            transition: all 0.2s;
         }
 
         .buy-btn:disabled {
-            background: #334155;
-            color: var(--text-dim);
+            background: #475569;
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
-        /* アーティファクト図鑑 */
+        /* アーティファクト */
         .artifact-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 5px;
         }
 
         .artifact-slot {
             aspect-ratio: 1;
             background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            border-radius: 12px;
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 1.5rem;
-            position: relative;
-            filter: grayscale(1);
+            border: 2px solid transparent;
             opacity: 0.3;
+            transition: all 0.3s;
+            cursor: help;
         }
 
         .artifact-slot.owned {
-            filter: grayscale(0);
             opacity: 1;
-            border-color: var(--orb);
-            box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        /* フッター統計 */
-        .footer-stats {
-            margin-top: auto;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 16px;
+        /* ガチャUI */
+        .gacha-container {
+            padding: 20px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            border: 1px dashed rgba(168, 85, 247, 0.4);
+        }
+
+        .gacha-banner {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #a855f7, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gacha-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(to right, #6366f1, #a855f7);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+            transition: all 0.2s;
+        }
+
+        .gacha-btn:active {
+            transform: scale(0.96);
+        }
+
+        .gacha-owned {
+            margin-top: 25px;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
+            gap: 12px;
+        }
+
+        .gacha-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 統計エリア */
+        .footer-stats {
+            background: #020617;
+            padding: 15px;
+            border-radius: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: auto;
         }
 
         .stat-box {
             display: flex;
             flex-direction: column;
+            gap: 2px;
         }
 
         .stat-lbl {
             font-size: 0.7rem;
             color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .stat-val {
-            font-weight: bold;
             font-size: 1rem;
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
         }
 
         .color-gold {
@@ -352,19 +405,81 @@
             color: var(--orb);
         }
 
-        #return-container {
-            margin-top: 10px;
-        }
-
         .return-btn {
             width: 100%;
-            padding: 12px;
-            background: linear-gradient(to right, var(--orb), var(--accent-secondary));
-            color: white;
-            border: none;
-            border-radius: 10px;
+            padding: 14px;
+            background: #1e293b;
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-top: 10px;
             font-weight: bold;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .return-btn:hover:not(:disabled) {
+            background: #334155;
+            border-color: var(--accent-primary);
+        }
+
+        /* オーバーレイ */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .result-card {
+            width: 85%;
+            max-width: 380px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            padding: 35px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* ツールチップ */
+        .tooltip {
+            position: fixed;
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid var(--accent-primary);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            z-index: 2000;
+            pointer-events: none;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        .death-flash {
+            animation: deathFlash 0.3s ease-out;
+        }
+
+        @keyframes deathFlash {
+            0% {
+                filter: brightness(1);
+            }
+
+            50% {
+                filter: brightness(10) contrast(2) hue-rotate(90deg);
+            }
+
+            100% {
+                filter: brightness(1);
+            }
         }
     </style>
 </head>
@@ -372,20 +487,15 @@
 <body>
 
     <div class="game-wrapper">
-        <!-- バトルエリア -->
         <div class="battle-screen">
             <div class="stage-info">STAGE <span id="stage-num">1</span></div>
-
-            <div class="units-container" id="unit-view">
-                <!-- 味方 -->
+            <div class="units-container">
                 <div class="entity walking" id="ally-entity">
                     <div class="avatar">🛡️</div>
                     <div class="hp-container">
                         <div id="ally-hp-bar" class="hp-fill hp-ally"></div>
                     </div>
                 </div>
-
-                <!-- 敵 -->
                 <div class="entity" id="enemy-entity">
                     <div class="avatar" id="enemy-avatar">👹</div>
                     <div class="hp-container">
@@ -395,76 +505,105 @@
             </div>
         </div>
 
-        <!-- 管理エリア -->
         <div class="management-area">
             <div class="tabs">
-                <button class="tab-btn active" onclick="showTab('units')">兵士雇用</button>
-                <button class="tab-btn" onclick="showTab('artifacts')">宝物図鑑</button>
+                <button class="tab-btn active" onclick="showTab('units')">兵士</button>
+                <button class="tab-btn" onclick="showTab('artifacts')">宝物</button>
+                <button class="tab-btn" onclick="showTab('gacha')">ガチャ</button>
             </div>
 
-            <!-- 兵士タブ -->
             <div id="units-tab" class="tab-content active">
-                <div id="unit-list">
-                    <!-- JSで動的に生成 -->
+                <div class="shop-header">
+                    <span class="shop-title">雇用・訓練</span>
+                    <button class="toggle-btn" id="buy-mode-btn" onclick="toggleBuyMode()">購入: x1</button>
                 </div>
+                <div id="unit-list"></div>
             </div>
 
-            <!-- アーティファクトタブ -->
             <div id="artifacts-tab" class="tab-content">
-                <div class="artifact-grid" id="artifact-list">
-                    <!-- JSで動的に生成 -->
+                <div class="artifact-grid" id="artifact-list"></div>
+            </div>
+
+            <div id="gacha-tab" class="tab-content">
+                <div class="gacha-container">
+                    <div class="gacha-banner">🌌 神域の呼び声</div>
+                    <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 25px;">
+                        失われた秘宝や契約のオーブを捧げ、<br>冒険を恒久的に強化するアーティファクトを引き当てろ。
+                    </p>
+                    <button class="gacha-btn" onclick="pullGacha()">ガチャ (100 Orbs)</button>
+                    <div id="gacha-owned-list" class="gacha-owned"></div>
                 </div>
             </div>
 
-            <!-- 統計と帰還 -->
             <div class="footer-stats">
                 <div class="stat-box">
-                    <span class="stat-lbl">所持ゴールド</span>
+                    <span class="stat-lbl">Gold</span>
                     <span id="gold-val" class="stat-val color-gold">0</span>
                 </div>
                 <div class="stat-box">
-                    <span class="stat-lbl">所持オーブ</span>
+                    <span class="stat-lbl">Orbs</span>
                     <span id="orb-val" class="stat-val color-orb">0</span>
                 </div>
                 <div class="stat-box">
-                    <span class="stat-lbl">合計攻撃力 (DPS)</span>
+                    <span class="stat-lbl">DPS</span>
                     <span id="dps-val" class="stat-val">0</span>
                 </div>
                 <div class="stat-box">
-                    <span class="stat-lbl">ボーナス倍率</span>
+                    <span class="stat-lbl">Bonus</span>
                     <span id="multi-val" class="stat-val">x1.0</span>
                 </div>
             </div>
 
-            <div id="return-container">
-                <button class="return-btn" id="return-btn" onclick="handleReturn()">
-                    帰還する (獲得予想: <span id="pending-orbs">0</span>)
-                </button>
+            <button class="return-btn" id="return-btn" onclick="handleReturn()">
+                帰還してオーブを獲得 (<span id="pending-orbs">0</span>)
+            </button>
+        </div>
+
+        <div id="result-overlay" class="overlay">
+            <div class="result-card">
+                <h2 style="color:var(--accent-primary); margin-top:0;">帰還達成</h2>
+                <div style="margin: 25px 0; text-align: left; font-size: 1.1rem;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">到達ステージ: <span
+                            id="res-stage">1</span></div>
+                    <div style="display:flex; justify-content:space-between; color:var(--orb); font-weight:bold;">獲得オーブ:
+                        <span id="res-orbs">0</span></div>
+                </div>
+                <div style="background:rgba(0,0,0,0.2); border-radius:12px; padding:15px; margin-bottom:25px;">
+                    <div style="font-size:0.8rem; color:var(--text-dim); margin-bottom:10px;">獲得した宝物</div>
+                    <div id="res-art-list" style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;"></div>
+                </div>
+                <button class="gacha-btn" onclick="closeResult()"
+                    style="background:var(--accent-primary); color:var(--bg-color);">次元を越える</button>
             </div>
         </div>
+
+        <div id="custom-tooltip" class="tooltip"></div>
     </div>
 
     <script>
-
-        // --- 定数定義 ---
+        // --- 設定・定数 ---
         const UNIT_TYPES = [
-            { id: 'infantry', name: '歩兵', icon: '🗡️', baseAtk: 10, baseCost: 15 },
-            { id: 'archer', name: '弓兵', icon: '🏹', baseAtk: 35, baseCost: 100 },
-            { id: 'knight', name: '騎士', icon: '🏇', baseAtk: 120, baseCost: 800 },
-            { id: 'samurai', name: '侍', icon: '👘', baseAtk: 500, baseCost: 5000 }
+            { id: 'infantry', name: '歩兵', icon: '🗡️', baseAtk: 10, baseCost: 15, unlockAt: 0 },
+            { id: 'archer', name: '弓兵', icon: '🏹', baseAtk: 35, baseCost: 100, unlockAt: 0 },
+            { id: 'knight', name: '騎士', icon: '🏇', baseAtk: 120, baseCost: 800, unlockAt: 0 },
+            { id: 'samurai', name: '侍', icon: '👘', baseAtk: 500, baseCost: 5000, unlockAt: 0 },
+            { id: 'warrior', name: 'ビッグウォーリア', icon: '🛡️', baseAtk: 2500, baseCost: 50000, unlockAt: 100 },
+            { id: 'golem', name: 'ゴーレム', icon: '🗿', baseAtk: 12000, baseCost: 500000, unlockAt: 200 },
+            { id: 'dragon', name: 'ドラゴンライダー', icon: '🐉', baseAtk: 75000, baseCost: 8000000, unlockAt: 300 }
         ];
 
         const RARITIES = {
-            L: { name: 'レジェンド', color: '#fbbf24', chance: 0.005 },
-            SR: { name: 'スーパーレア', color: '#a855f7', chance: 0.025 },
-            HR: { name: 'ハイパーレア', color: '#3b82f6', chance: 0.07 },
-            R: { name: 'レア', color: '#22c55e', chance: 0.20 },
-            N: { name: 'ノーマル', color: '#94a3b8', chance: 0.70 }
+            L: { name: 'LEGEND', color: '#fbbf24', chance: 0.005 },
+            SR: { name: 'SUPER RARE', color: '#a855f7', chance: 0.025 },
+            HR: { name: 'HYPER RARE', color: '#3b82f6', chance: 0.07 },
+            R: { name: 'RARE', color: '#22c55e', chance: 0.20 },
+            N: { name: 'NORMAL', color: '#94a3b8', chance: 0.70 }
         };
 
         const ARTIFACT_DATA = [
             { id: 'gungnir', rarity: 'L', name: '神槍グングニル', icon: '🔱', effect: 'atk_add', value: 10.0 },
-            { id: 'dainsleif', rarity: 'L', name: '魔剣ダインスレイヴ', icon: '👿', effect: 'atk_add', value: 5.0, special: 'regen' },
+            { id: 'dainsleif', rarity: 'L', name: '魔剣ダインスレイヴ', icon: '👿', effect: 'atk_add', value: 5.0, special: 'divine_shred' },
+            { id: 'death_scythe', rarity: 'L', name: '死鎌デスサイズ', icon: '💀', effect: 'none', value: 0, special: 'instant_kill' },
             { id: 'legend_sword', rarity: 'SR', name: '伝説の剣', icon: '⚔️', effect: 'atk_add', value: 1.0 },
             { id: 'sage_stone', rarity: 'SR', name: '賢者の石', icon: '💎', effect: 'gold_multi', value: 1.0 },
             { id: 'tyrant_shield', rarity: 'SR', name: '覇王の盾', icon: '🛡️', effect: 'hp_multi', value: 1.0 },
@@ -482,136 +621,179 @@
             { id: 'shield_n', rarity: 'N', name: '盾', icon: '🛡️', effect: 'hp_multi', value: 0.25 }
         ];
 
-        const ENEMY_ICONS = ['👹', '💀', '👻', '🐲', '🧟', '🐺', '🦂'];
+        const GACHA_ITEMS = [
+            { id: 'rainbow_crystal', rarity: 'HR', name: '虹のクリスタル', icon: '🌈', desc: '40%で報酬2倍', max: 3, effect: 'double_reward', chance: 0.02 },
+            { id: 'universal_contract', rarity: 'SR', name: '万能の契約書', icon: '📜', desc: 'コスト50%減', max: 1, effect: 'cost_cut', chance: 0.05 },
+            { id: 'erined_ring', rarity: 'SR', name: 'エリネドの指輪', icon: '💍', desc: '30%で追加攻撃(2倍)', max: 1, effect: 'extra_attack', chance: 0.05 },
+            { id: 'body_elixir', rarity: 'R', name: '体の秘薬', icon: '🧪', desc: '初期攻撃Lv+10', max: 3, effect: 'initial_lv', chance: 0.13 },
+            { id: 'orichalcum', rarity: 'N', name: 'オリハルコン', icon: '🧱', desc: 'コイン獲得+1% / 個', max: 1000, effect: 'gold_stack', chance: 0.60 },
+            { id: 'greed_mask', rarity: 'N', name: '強欲の仮面', icon: '🎭', desc: '20%でコイン3倍', max: 10, effect: 'triple_gold', chance: 0.15 }
+        ];
 
-        // --- クラス定義 ---
+        const ENEMY_ICONS = ['👹', '💀', '👻', '🧟', '🐺', '🦂', '🕷️'];
 
+        // --- ユーティリティ ---
+        function formatNumber(num) {
+            if (num < 1000) return Math.floor(num).toString();
+            const suffixes = ["", "K", "M", "B", "T", "P", "E", "Z"];
+            const i = Math.floor(Math.log10(num) / 3);
+            const val = num / Math.pow(10, i * 3);
+            return (val < 10 ? val.toFixed(2) : val.toFixed(1)) + suffixes[i];
+        }
+
+        // --- マネージャー ---
         class ArtifactManager {
-            constructor() {
-                this.owned = {}; // { id: level }
-            }
-
+            constructor() { this.owned = {}; }
             draw(count) {
                 const results = [];
                 for (let i = 0; i < count; i++) {
                     const r = Math.random();
                     let cumulative = 0;
                     let selectedRarity = 'N';
-
                     for (const [key, meta] of Object.entries(RARITIES)) {
                         cumulative += meta.chance;
-                        if (r <= cumulative) {
-                            selectedRarity = key;
-                            break;
-                        }
+                        if (r <= cumulative) { selectedRarity = key; break; }
                     }
-
                     const pool = ARTIFACT_DATA.filter(a => a.rarity === selectedRarity);
                     const picked = pool[Math.floor(Math.random() * pool.length)];
-
                     this.owned[picked.id] = (this.owned[picked.id] || 0) + 1;
-                    if (this.owned[picked.id] > 10000) this.owned[picked.id] = 10000;
-
                     results.push(picked);
                 }
                 return results;
             }
-
-            getBonuses() {
-                let bonuses = { atkAdd: 0, atkMulti: 1.0, goldMulti: 1.0, hpMulti: 1.0, regen: false };
-                for (const [id, level] of Object.entries(this.owned)) {
+            getBonuses(stage) {
+                let stats = { atkAdd: 0, atkMulti: 1.0, goldMulti: 1.0, hpMulti: 1.0, instantKill: 0 };
+                for (const [id, lv] of Object.entries(this.owned)) {
                     const data = ARTIFACT_DATA.find(a => a.id === id);
                     if (!data) continue;
+                    let val = data.value * lv;
+                    if (data.special === 'divine_shred') val *= (1 + (stage * 0.02));
+                    if (data.special === 'instant_kill') stats.instantKill += 0.05; // 5% per level
 
-                    const totalBonus = data.value * level;
-
-                    switch (data.effect) {
-                        case 'atk_add': bonuses.atkAdd += totalBonus; break;
-                        case 'atk_multi': bonuses.atkMulti += totalBonus; break;
-                        case 'gold_multi': bonuses.goldMulti += totalBonus; break;
-                        case 'hp_multi': bonuses.hpMulti += totalBonus; break;
-                    }
-                    if (data.special === 'regen') bonuses.regen = true;
+                    if (data.effect === 'atk_add') stats.atkAdd += val;
+                    else if (data.effect === 'atk_multi') stats.atkMulti += val;
+                    else if (data.effect === 'gold_multi') stats.goldMulti += val;
+                    else if (data.effect === 'hp_multi') stats.hpMulti += val;
                 }
-                return bonuses;
+                return stats;
+            }
+        }
+
+        class GachaManager {
+            constructor() { this.owned = {}; }
+            pull() {
+                const r = Math.random();
+                let cumulative = 0;
+                for (const item of GACHA_ITEMS) {
+                    cumulative += item.chance;
+                    if (r <= cumulative) {
+                        if ((this.owned[item.id] || 0) < item.max) {
+                            this.owned[item.id] = (this.owned[item.id] || 0) + 1;
+                            return item;
+                        }
+                    }
+                }
+                return null;
+            }
+            getBonuses() {
+                let b = { goldStack: 0, tripleGold: 0, doubleReward: 0, costCut: 1.0, extraAttack: 0, initialLv: 0 };
+                for (const [id, count] of Object.entries(this.owned)) {
+                    const data = GACHA_ITEMS.find(i => i.id === id);
+                    if (!data) continue;
+                    if (data.effect === 'gold_stack') b.goldStack += count * 0.01;
+                    if (data.effect === 'triple_gold') b.tripleGold += count * 0.2;
+                    if (data.effect === 'double_reward') b.doubleReward += count * 0.4;
+                    if (data.effect === 'cost_cut') b.costCut = 0.5;
+                    if (data.effect === 'extra_attack') b.extraAttack = 0.3;
+                    if (data.effect === 'initial_lv') b.initialLv += count * 10;
+                }
+                return b;
             }
         }
 
         class Game {
             constructor() {
-                this.stage = 1;
-                this.gold = 0;
-                this.orbs = 0;
-                this.units = {};
+                this.stage = 1; this.gold = 0; this.orbs = 0; this.units = {};
                 UNIT_TYPES.forEach(t => this.units[t.id] = 0);
-                this.artifactManager = new ArtifactManager();
-                this.lastSave = Date.now();
+                this.artMgr = new ArtifactManager();
+                this.gachaMgr = new GachaManager();
+                this.buyMode = 1; // 1, 10, -1(MAX)
             }
-
-            getUnitCost(id) {
+            getUnitCost(id, count = 1) {
                 const type = UNIT_TYPES.find(u => u.id === id);
-                return Math.floor(type.baseCost * Math.pow(1.15, this.units[id]));
+                let lv = this.units[id];
+                let total = 0;
+                const costCut = this.gachaMgr.getBonuses().costCut;
+                for (let i = 0; i < count; i++) {
+                    total += type.baseCost * Math.pow(1.15, lv + i);
+                }
+                return Math.floor(total * costCut);
             }
-
+            getMaxBuy(id) {
+                const type = UNIT_TYPES.find(u => u.id === id);
+                const costCut = this.gachaMgr.getBonuses().costCut;
+                let count = 0; let tempGold = this.gold; let lv = this.units[id];
+                while (true) {
+                    let cost = Math.floor(type.baseCost * Math.pow(1.15, lv + count) * costCut);
+                    if (tempGold >= cost && count < 1000) { tempGold -= cost; count++; } else break;
+                }
+                return count;
+            }
             getStats() {
-                let rawAtk = 0;
-                UNIT_TYPES.forEach(type => {
-                    rawAtk += type.baseAtk * this.units[type.id];
-                });
-                if (rawAtk === 0) rawAtk = 6;
+                let baseAtk = 0;
+                UNIT_TYPES.forEach(t => baseAtk += t.baseAtk * this.units[t.id]);
+                if (baseAtk === 0) baseAtk = 5;
 
-                const artBonuses = this.artifactManager.getBonuses();
-                const orbBonus = 1.0 + (this.orbs * 0.1);
+                const a = this.artMgr.getBonuses(this.stage);
+                const g = this.gachaMgr.getBonuses();
+                const orbBonus = 1 + (this.orbs * 0.1);
 
-                const dps = (rawAtk * (1.0 + artBonuses.atkAdd) * artBonuses.atkMulti) * orbBonus;
-                const goldMulti = artBonuses.goldMulti;
-                const hpMulti = artBonuses.hpMulti;
-
-                return { dps, goldMulti, hpMulti, regen: artBonuses.regen };
-            }
-
-            save() {
-                const saveData = {
-                    stage: this.stage,
-                    gold: this.gold,
-                    orbs: this.orbs,
-                    units: this.units,
-                    artifacts: this.artifactManager.owned,
-                    lastSave: Date.now()
+                let dps = (baseAtk * (1 + a.atkAdd) * a.atkMulti) * orbBonus;
+                return {
+                    dps,
+                    extraAttack: g.extraAttack,
+                    goldMulti: a.goldMulti * (1 + g.goldStack),
+                    hpMulti: a.hpMulti,
+                    instantKill: a.instantKill,
+                    tripleGold: g.tripleGold,
+                    doubleReward: g.doubleReward
                 };
-                localStorage.setItem('idleRogueRich_v2_Save', JSON.stringify(saveData));
             }
-
+            save() {
+                const data = {
+                    s: this.stage, g: this.gold, o: this.orbs, u: this.units,
+                    a: this.artMgr.owned, ga: this.gachaMgr.owned
+                };
+                localStorage.setItem('RPG_SAVE_PRO', JSON.stringify(data));
+            }
             load() {
-                const data = localStorage.getItem('idleRogueRich_v2_Save');
-                if (data) {
-                    const parsed = JSON.parse(data);
-                    this.stage = parsed.stage || 1;
-                    this.gold = parsed.gold || 0;
-                    this.orbs = parsed.orbs || 0;
-                    this.units = parsed.units || this.units;
-                    this.artifactManager.owned = parsed.artifacts || {};
+                const raw = localStorage.getItem('RPG_SAVE_PRO');
+                if (raw) {
+                    const d = JSON.parse(raw);
+                    this.stage = d.s || 1; this.gold = d.g || 0; this.orbs = d.o || 0;
+                    this.units = d.u || this.units;
+                    this.artMgr.owned = d.a || {}; this.gachaMgr.owned = d.ga || {};
                 }
             }
         }
 
-        // --- 管理インスタンス ---
-        const gameInstance = new Game();
-        let battle = {
-            enemyHp: 50,
-            enemyMaxHp: 50,
-            allyHp: 200,
-            allyMaxHp: 200,
-            lastTick: Date.now(),
-            isBoss: false
-        };
+        const game = new Game();
+        let battle = { enemyHp: 50, enemyMaxHp: 50, allyHp: 200, allyMaxHp: 200, lastTick: Date.now(), isBoss: false };
 
-        // --- UI制御 ---
-        function showTab(tabName) {
+        // --- UI ---
+        function showTab(t) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`${tabName}-tab`).classList.add('active');
+            document.getElementById(`${t}-tab`).classList.add('active');
             event.currentTarget.classList.add('active');
+        }
+
+        function toggleBuyMode() {
+            if (game.buyMode === 1) game.buyMode = 10;
+            else if (game.buyMode === 10) game.buyMode = -1;
+            else game.buyMode = 1;
+            document.getElementById('buy-mode-btn').textContent = `購入: ${game.buyMode === -1 ? 'MAX' : 'x' + game.buyMode}`;
+            updateUI();
         }
 
         function initUI() {
@@ -619,206 +801,226 @@
             list.innerHTML = '';
             UNIT_TYPES.forEach(type => {
                 const card = document.createElement('div');
+                card.id = `unit-card-${type.id}`;
                 card.className = 'item-card';
+                card.style.display = game.stage >= type.unlockAt ? 'flex' : 'none';
                 card.innerHTML = `
                     <div class="item-icon">${type.icon}</div>
                     <div class="item-info">
                         <span class="item-name">${type.name} (Lv <span id="lv-${type.id}">0</span>)</span>
-                        <span class="item-desc">攻撃力: ${type.baseAtk} / 次: <span id="cost-${type.id}">0</span> G</span>
+                        <span class="item-desc">Atk: ${formatNumber(type.baseAtk)} / Cost: <span id="cost-${type.id}">0</span></span>
                     </div>
                     <button class="buy-btn" id="btn-${type.id}" onclick="buyUnit('${type.id}')">雇用</button>
                 `;
                 list.appendChild(card);
             });
 
-            const artList = document.getElementById('artifact-list');
-            artList.innerHTML = '';
+            const artGrid = document.getElementById('artifact-list');
+            artGrid.innerHTML = '';
             ARTIFACT_DATA.forEach(art => {
                 const slot = document.createElement('div');
-                slot.id = `art-${art.id}`;
-                slot.className = `artifact-slot`;
+                slot.id = `art-slot-${art.id}`;
+                slot.className = 'artifact-slot';
                 slot.style.borderColor = RARITIES[art.rarity].color;
                 slot.innerHTML = art.icon;
-                slot.title = `${art.name} [${RARITIES[art.rarity].name}]\n効果: ${art.effect} (Lv 0)`;
-                artList.appendChild(slot);
+                slot.onmouseenter = (e) => showTooltip(e, art);
+                slot.onmouseleave = hideTooltip;
+                artGrid.appendChild(slot);
             });
+            updateGachaOwned();
+        }
+
+        function showTooltip(e, art) {
+            const lv = game.artMgr.owned[art.id] || 0;
+            const r = RARITIES[art.rarity];
+            const tt = document.getElementById('custom-tooltip');
+            tt.innerHTML = `
+                <div style="color:${r.color}; font-size:0.7rem; font-weight:bold;">${r.name}</div>
+                <div style="font-weight:bold; font-size:1rem; margin:4px 0;">${art.name}</div>
+                <div style="color:var(--accent-secondary);">Level: ${lv.toLocaleString()}</div>
+                <div style="font-size:0.75rem; color:var(--text-dim); margin-top:8px;">
+                    効果: ${art.effect.replace('_', ' ')} (+${(art.value * 100).toFixed(1)}%/Lv)
+                    ${art.special ? `<br><span style="color:var(--gold)">★特殊: ${art.special}</span>` : ''}
+                </div>
+            `;
+            tt.style.display = 'block';
+            moveTooltip(e);
+        }
+
+        function moveTooltip(e) {
+            const tt = document.getElementById('custom-tooltip');
+            tt.style.left = (e.clientX + 15) + 'px';
+            tt.style.top = (e.clientY + 15) + 'px';
+        }
+
+        function hideTooltip() { document.getElementById('custom-tooltip').style.display = 'none'; }
+
+        function updateGachaOwned() {
+            const list = document.getElementById('gacha-owned-list');
+            list.innerHTML = '';
+            for (const [id, count] of Object.entries(game.gachaMgr.owned)) {
+                if (count <= 0) continue;
+                const data = GACHA_ITEMS.find(i => i.id === id);
+                const el = document.createElement('div');
+                el.className = 'gacha-item';
+                el.innerHTML = `<span>${data.icon}</span> <span>x${count}</span>`;
+                list.appendChild(el);
+            }
         }
 
         function updateUI() {
-            const stats = gameInstance.getStats();
-            document.getElementById('stage-num').innerHTML = battle.isBoss ? `<span style="color:var(--danger)">BOSS</span> ${gameInstance.stage}` : gameInstance.stage;
-            document.getElementById('gold-val').textContent = Math.floor(gameInstance.gold).toLocaleString();
-            document.getElementById('orb-val').textContent = gameInstance.orbs.toLocaleString();
-            document.getElementById('dps-val').textContent = Math.floor(stats.dps).toLocaleString();
+            const s = game.getStats();
+            document.getElementById('stage-num').innerHTML = battle.isBoss ? `<span style="color:var(--danger)">BOSS</span> ${game.stage}` : game.stage;
+            document.getElementById('gold-val').textContent = formatNumber(game.gold);
+            document.getElementById('orb-val').textContent = game.orbs.toLocaleString();
+            document.getElementById('dps-val').textContent = formatNumber(s.dps);
 
-            const rawAtkSum = UNIT_TYPES.reduce((s, t) => s + t.baseAtk * gameInstance.units[t.id], 0) || 6;
-            document.getElementById('multi-val').textContent = `x${(stats.dps / rawAtkSum).toFixed(1)}`;
+            const baseAtkSum = UNIT_TYPES.reduce((acc, t) => acc + t.baseAtk * game.units[t.id], 0) || 5;
+            document.getElementById('multi-val').textContent = `x${(s.dps / baseAtkSum).toFixed(1)}`;
 
             UNIT_TYPES.forEach(type => {
-                const cost = gameInstance.getUnitCost(type.id);
-                document.getElementById(`lv-${type.id}`).textContent = gameInstance.units[type.id];
-                document.getElementById(`cost-${type.id}`).textContent = cost.toLocaleString();
-                document.getElementById(`btn-${type.id}`).disabled = gameInstance.gold < cost;
+                const card = document.getElementById(`unit-card-${type.id}`);
+                if (game.stage >= type.unlockAt) card.style.display = 'flex';
+                let bCount = game.buyMode === -1 ? game.getMaxBuy(type.id) : game.buyMode;
+                if (bCount < 1) bCount = 1;
+                const cost = game.getUnitCost(type.id, bCount);
+                document.getElementById(`lv-${type.id}`).textContent = game.units[type.id].toLocaleString();
+                document.getElementById(`cost-${type.id}`).textContent = formatNumber(cost);
+                document.getElementById(`btn-${type.id}`).disabled = game.gold < cost;
             });
 
-            // 宝物の更新
-            for (const art of ARTIFACT_DATA) {
-                const level = gameInstance.artifactManager.owned[art.id] || 0;
-                const slot = document.getElementById(`art-${art.id}`);
-                if (level > 0) {
-                    slot.classList.add('owned');
-                    slot.title = `${art.name} [${RARITIES[art.rarity].name}]\nLv ${level}`;
-                    // レベルをスロットの下に小さく表示したい場合はここで調整可能
-                }
-            }
+            ARTIFACT_DATA.forEach(art => {
+                const el = document.getElementById(`art-slot-${art.id}`);
+                if (game.artMgr.owned[art.id] > 0) el.classList.add('owned');
+            });
 
-            const pending = Math.floor(gameInstance.stage / 10);
+            const pending = Math.floor(game.stage / 10);
             document.getElementById('pending-orbs').textContent = pending;
-            document.getElementById('return-btn').disabled = gameInstance.stage < 10;
-
+            document.getElementById('return-btn').disabled = game.stage < 10;
             document.getElementById('enemy-hp-bar').style.width = (battle.enemyHp / battle.enemyMaxHp * 100) + '%';
             document.getElementById('ally-hp-bar').style.width = (battle.allyHp / battle.allyMaxHp * 100) + '%';
         }
 
         // --- ロジック ---
         function buyUnit(id) {
-            const cost = gameInstance.getUnitCost(id);
-            if (gameInstance.gold >= cost) {
-                gameInstance.gold -= cost;
-                gameInstance.units[id]++;
-                updateUI();
-                gameInstance.save();
+            let bCount = game.buyMode === -1 ? game.getMaxBuy(id) : game.buyMode;
+            if (bCount < 1) return;
+            const cost = game.getUnitCost(id, bCount);
+            if (game.gold >= cost) {
+                game.gold -= cost; game.units[id] += bCount;
+                updateUI(); game.save();
             }
         }
 
-        function createDamageText(amount, xOffset, color = '#ff4757') {
-            const container = document.querySelector('.battle-screen');
+        function pullGacha() {
+            if (game.orbs >= 100) {
+                game.orbs -= 100;
+                const res = game.gachaMgr.pull();
+                if (res) alert(`獲得: ${res.icon} ${res.name}\n${res.desc}`);
+                else alert(`残念！何も獲得できませんでした（または所持上限）。`);
+                updateGachaOwned(); updateUI(); game.save();
+            } else alert(`オーブが足りません！`);
+        }
+
+        function createPop(val, isGold = false) {
+            const screen = document.querySelector('.battle-screen');
             const el = document.createElement('div');
             el.className = 'damage-popup';
-            el.textContent = `-${Math.floor(amount)}`;
-            el.style.color = color;
-            el.style.left = `calc(50% + ${xOffset}px)`;
-            el.style.top = `50%`;
-            container.appendChild(el);
+            el.textContent = isGold ? `+${formatNumber(val)}G` : `-${formatNumber(val)}`;
+            el.style.color = isGold ? 'var(--gold)' : 'var(--danger)';
+            el.style.left = `calc(50% + ${(Math.random() * 60 - 30)}px)`;
+            el.style.top = `40%`;
+            screen.appendChild(el);
             setTimeout(() => el.remove(), 800);
         }
 
-        function spawnNextEnemy() {
-            gameInstance.stage++;
-            battle.isBoss = (gameInstance.stage % 10 === 0);
-
-            let hpBase = 50 * Math.pow(1.25, gameInstance.stage - 1);
-            if (battle.isBoss) hpBase *= 10; // ボスはHP10倍
-
-            battle.enemyMaxHp = Math.floor(hpBase);
+        function spawnEnemy() {
+            game.stage++;
+            battle.isBoss = (game.stage % 10 === 0);
+            let hp = 50 * Math.pow(1.25, game.stage - 1);
+            if (battle.isBoss) hp *= 10;
+            battle.enemyMaxHp = Math.floor(hp);
             battle.enemyHp = battle.enemyMaxHp;
-
-            const avatar = battle.isBoss ? '🐉' : ENEMY_ICONS[Math.floor(Math.random() * ENEMY_ICONS.length)];
-            const enemyEl = document.getElementById('enemy-entity');
-            const enemyAvatar = document.getElementById('enemy-avatar');
-
-            enemyEl.style.transform = 'translateX(100px)';
-            enemyEl.style.opacity = '0';
-            enemyAvatar.style.fontSize = battle.isBoss ? '5rem' : '3rem';
-
-            setTimeout(() => {
-                enemyAvatar.textContent = avatar;
-                enemyEl.style.transform = 'translateX(0)';
-                enemyEl.style.opacity = '1';
-            }, 300);
+            document.getElementById('enemy-avatar').textContent = battle.isBoss ? '🐉' : ENEMY_ICONS[Math.floor(Math.random() * ENEMY_ICONS.length)];
         }
 
         function handleReturn() {
-            const pendingOrbs = Math.floor(gameInstance.stage / 10);
-            if (confirm(`帰還して「オーブ ${pendingOrbs}個」と「宝物 ${pendingOrbs}個」を獲得しますか？（進行状況はリセットされます）`)) {
+            const orbs = Math.floor(game.stage / 10);
+            document.getElementById('res-stage').textContent = game.stage;
+            document.getElementById('res-orbs').textContent = orbs;
 
-                // 宝物の抽選
-                const rewards = gameInstance.artifactManager.draw(pendingOrbs);
-                if (rewards.length > 0) {
-                    const names = rewards.slice(0, 5).map(r => `[${r.rarity}] ${r.name}`).join('\n');
-                    alert(`宝物を獲得しました！\n${names}${rewards.length > 5 ? `\n...他 ${rewards.length - 5}個` : ''}`);
-                }
+            const arts = game.artMgr.draw(orbs);
+            const grid = document.getElementById('res-art-list');
+            grid.innerHTML = '';
+            arts.slice(0, 12).forEach(a => {
+                const d = document.createElement('div');
+                d.style.fontSize = '1.2rem'; d.style.border = `1px solid ${RARITIES[a.rarity].color}`;
+                d.style.borderRadius = '6px'; d.innerHTML = a.icon; grid.appendChild(d);
+            });
+            document.getElementById('result-overlay').style.display = 'flex';
 
-                gameInstance.orbs += pendingOrbs;
-                gameInstance.stage = 1;
-                gameInstance.gold = 0;
-                UNIT_TYPES.forEach(t => gameInstance.units[t.id] = 0);
-
-                battle.enemyMaxHp = 50;
-                battle.enemyHp = 50;
-                battle.isBoss = false;
-
-                const stats = gameInstance.getStats();
-                battle.allyMaxHp = 200 * stats.hpMulti;
-                battle.allyHp = battle.allyMaxHp;
-
-                initUI();
-                updateUI();
-                gameInstance.save();
-            }
+            game.orbs += orbs; game.stage = 1; game.gold = 0;
+            const g = game.gachaMgr.getBonuses();
+            UNIT_TYPES.forEach(t => game.units[t.id] = g.initialLv);
+            battle.enemyHp = 50; battle.enemyMaxHp = 50; battle.isBoss = false;
         }
 
-        let lastRegenTick = 0;
+        function closeResult() {
+            document.getElementById('result-overlay').style.display = 'none';
+            initUI(); updateUI(); game.save();
+        }
 
-        function gameLoop() {
+        function loop() {
             const now = Date.now();
             const dt = (now - battle.lastTick) / 1000;
             battle.lastTick = now;
 
-            const stats = gameInstance.getStats();
-            battle.allyMaxHp = 200 * stats.hpMulti;
+            const s = game.getStats();
+            battle.allyMaxHp = 200 * s.hpMulti;
 
-            // 敵へのダメージ
-            const dmgToEnemy = stats.dps * dt;
-            battle.enemyHp -= dmgToEnemy;
-
-            // ダメージ演出
-            if (now % 500 < 30) {
-                createDamageText(stats.dps / 2, 40);
-                document.getElementById('enemy-entity').classList.add('hit-flash');
-                setTimeout(() => document.getElementById('enemy-entity').classList.remove('hit-flash'), 200);
+            // 即死
+            if (!battle.isBoss && Math.random() < s.instantKill * dt) {
+                battle.enemyHp = 0;
+                document.getElementById('enemy-entity').classList.add('death-flash');
+                setTimeout(() => document.getElementById('enemy-entity').classList.remove('death-flash'), 400);
             }
 
-            // 毎秒回復 (ダインスレイヴ)
-            if (stats.regen && now - lastRegenTick > 1000) {
-                const regenAmt = battle.allyMaxHp * 0.2;
-                battle.allyHp = Math.min(battle.allyMaxHp, battle.allyHp + regenAmt);
-                createDamageText(regenAmt, -40, '#22c55e'); // 回復を緑で表示
-                lastRegenTick = now;
-            }
+            let dps = s.dps;
+            if (Math.random() < s.extraAttack) dps *= 2;
+            battle.enemyHp -= dps * dt;
+
+            if (now % 600 < 35) { createPop(dps / 2); document.getElementById('enemy-entity').classList.add('hit-flash'); setTimeout(() => document.getElementById('enemy-entity').classList.remove('hit-flash'), 150); }
 
             if (battle.enemyHp <= 0) {
-                let goldBase = 10 * Math.pow(1.2, gameInstance.stage - 1);
-                if (battle.isBoss) goldBase *= 5; // ボス報酬5倍
-                gameInstance.gold += goldBase * stats.goldMulti;
-                spawnNextEnemy();
+                let g = 10 * Math.pow(1.2, game.stage - 1) * s.goldMulti;
+                if (battle.isBoss) g *= 5;
+                if (Math.random() < s.tripleGold) g *= 3;
+                if (Math.random() < s.doubleReward) g *= 2;
+                game.gold += g;
+                createPop(g, true);
+                spawnEnemy();
             }
 
-            // 味方へのダメージ
-            const monsterDmg = (2 + gameInstance.stage * 1.5) * dt;
-            battle.allyHp -= monsterDmg;
-
+            battle.allyHp -= (2 + game.stage * 1.5) * dt;
             if (battle.allyHp <= 0) {
-                gameInstance.stage = Math.max(1, gameInstance.stage - 1);
-                battle.isBoss = (gameInstance.stage % 10 === 0);
-                battle.enemyMaxHp = Math.floor(50 * Math.pow(1.25, gameInstance.stage - 1)) * (battle.isBoss ? 10 : 1);
+                game.stage = Math.max(1, game.stage - 1);
+                battle.isBoss = (game.stage % 10 === 0);
+                battle.enemyMaxHp = Math.floor(50 * Math.pow(1.25, game.stage - 1)) * (battle.isBoss ? 10 : 1);
                 battle.enemyHp = battle.enemyMaxHp;
                 battle.allyHp = battle.allyMaxHp;
             }
 
             updateUI();
-            requestAnimationFrame(gameLoop);
+            requestAnimationFrame(loop);
         }
 
-        // --- 開始 ---
-        gameInstance.load();
+        game.load();
         initUI();
         updateUI();
-        setInterval(() => gameInstance.save(), 10000);
-        requestAnimationFrame(gameLoop);
-
+        window.addEventListener('mousemove', moveTooltip);
+        requestAnimationFrame(loop);
+        setInterval(() => game.save(), 5000);
     </script>
-
 </body>
 
 </html>
