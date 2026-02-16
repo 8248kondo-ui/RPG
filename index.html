@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idle Rogue Mini - 放置型ローグライク</title>
+    <title>Idle Rogue Rich - 究極の放置RPG</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -16,12 +17,13 @@
             --success: #22c55e;
             --gold: #fbbf24;
             --orb: #a855f7;
+            --panel-bg: rgba(15, 23, 42, 0.6);
         }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             display: flex;
@@ -29,390 +31,675 @@
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
+            user-select: none;
         }
 
-        .game-container {
-            width: 90%;
-            max-width: 500px;
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            text-align: center;
-        }
-
-        h1 {
-            margin: 0 0 10px 0;
-            font-size: 1.5rem;
-            background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .stage-display {
-            font-size: 1.2rem;
-            color: var(--text-dim);
-            margin-bottom: 20px;
-        }
-
-        /* バトルの視覚表現 */
-        .battle-area {
-            margin-bottom: 30px;
+        /* ゲーム全体のコンテナ */
+        .game-wrapper {
+            width: 95%;
+            max-width: 480px;
+            height: 90vh;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-        }
-
-        .hp-bar-container {
-            width: 100%;
-            height: 24px;
-            background: #1e293b;
-            border-radius: 12px;
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
             overflow: hidden;
-            position: relative;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
         }
 
-        .hp-bar {
-            height: 100%;
+        /* --- 上部：バトル実況エリア --- */
+        .battle-screen {
+            flex: 0 0 240px;
+            position: relative;
+            background: linear-gradient(to bottom, #1e293b, #0f172a);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .stage-info {
+            position: absolute;
+            top: 15px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: var(--accent-primary);
+        }
+
+        .units-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
             width: 100%;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        /* ユニットの視覚表現 */
+        .entity {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 120px;
+            transition: transform 0.5s ease;
+        }
+
+        .avatar {
+            font-size: 3rem;
+            filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.5));
+        }
+
+        /* 進軍アニメーション：上下に揺れる */
+        .walking {
+            animation: bobbing 0.6s infinite ease-in-out;
+        }
+
+        @keyframes bobbing {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        /* ダメージ・フラッシュ演出 */
+        .hit-flash {
+            animation: flash 0.2s fast;
+        }
+
+        @keyframes flash {
+            0% {
+                filter: brightness(1);
+            }
+
+            50% {
+                filter: brightness(3) sepia(1) hue-rotate(-50deg);
+            }
+
+            100% {
+                filter: brightness(1);
+            }
+        }
+
+        /* ダメージ数字ポップアップ */
+        .damage-popup {
+            position: absolute;
+            color: #ff4757;
+            font-weight: bold;
+            font-size: 1.2rem;
+            pointer-events: none;
+            animation: popup 0.8s ease-out forwards;
+            text-shadow: 0 0 4px black;
+            z-index: 100;
+        }
+
+        @keyframes popup {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+        }
+
+        .hp-container {
+            width: 100%;
+            height: 10px;
+            background: #334155;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .hp-fill {
+            height: 100%;
             transition: width 0.1s linear;
         }
 
-        .ally-hp { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-        .enemy-hp { background: linear-gradient(90deg, #ef4444, #f87171); }
-
-        .hp-text {
-            position: absolute;
+        .hp-ally {
+            background: var(--accent-primary);
             width: 100%;
-            left: 0;
-            top: 0;
-            line-height: 24px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
 
-        /* 統計情報 */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 25px;
+        .hp-enemy {
+            background: var(--danger);
+            width: 100%;
         }
 
-        .stat-item {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 10px;
-            border-radius: 10px;
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            display: block;
-        }
-
-        .stat-value {
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-
-        .gold-value { color: var(--gold); }
-        .orb-value { color: var(--orb); }
-
-        /* アップグレードエリア */
-        .action-area {
+        /* --- 下部：管理・強化エリア --- */
+        .management-area {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            padding: 10px;
+            background: var(--panel-bg);
+            overflow: hidden;
         }
 
-        button {
+        /* タブメニュー */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
             border: none;
-            padding: 14px;
+            color: var(--text-dim);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-primary);
+            color: var(--bg-color);
+        }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* スクロールバーの美化 */
+        .tab-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .tab-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        /* カード風アイテム */
+        .item-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.2s;
+        }
+
+        .item-card:active {
+            transform: scale(0.98);
+        }
+
+        .item-icon {
+            font-size: 1.8rem;
+            width: 40px;
+            text-align: center;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            display: block;
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
+        .item-desc {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .buy-btn {
+            background: var(--accent-primary);
+            color: var(--bg-color);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.95rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            min-width: 80px;
         }
 
-        button:active { transform: scale(0.98); }
-        button:disabled {
-            opacity: 0.5;
+        .buy-btn:disabled {
+            background: #334155;
+            color: var(--text-dim);
             cursor: not-allowed;
-            filter: grayscale(1);
         }
 
-        .btn-upgrade {
-            background: rgba(56, 189, 248, 0.15);
-            color: var(--accent-primary);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-        }
-        .btn-upgrade:hover:not(:disabled) {
-            background: rgba(56, 189, 248, 0.25);
+        /* アーティファクト図鑑 */
+        .artifact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
         }
 
-        .btn-return {
-            background: rgba(168, 85, 247, 0.2);
-            color: var(--orb);
-            border: 1px solid rgba(168, 85, 247, 0.4);
-            margin-top: 10px;
+        .artifact-slot {
+            aspect-ratio: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
             justify-content: center;
-        }
-        .btn-return:hover:not(:disabled) {
-            background: rgba(168, 85, 247, 0.3);
-        }
-
-        .cost-text {
-            font-size: 0.85rem;
-            opacity: 0.9;
+            align-items: center;
+            font-size: 1.5rem;
+            position: relative;
+            filter: grayscale(1);
+            opacity: 0.3;
         }
 
-        /* アニメーション */
-        @keyframes damage {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-2px); }
-            50% { transform: translateX(2px); }
-            75% { transform: translateX(-1px); }
-            100% { transform: translateX(0); }
+        .artifact-slot.owned {
+            filter: grayscale(0);
+            opacity: 1;
+            border-color: var(--orb);
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
         }
 
-        .shake { animation: damage 0.2s ease-in-out; }
+        /* フッター統計 */
+        .footer-stats {
+            margin-top: auto;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 16px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-lbl {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .stat-val {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .color-gold {
+            color: var(--gold);
+        }
+
+        .color-orb {
+            color: var(--orb);
+        }
+
+        #return-container {
+            margin-top: 10px;
+        }
+
+        .return-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(to right, var(--orb), var(--accent-secondary));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
+
 <body>
 
-<div class="game-container">
-    <h1>Idle Rogue Mini</h1>
-    <div class="stage-display">STAGE <span id="stage-num">1</span></div>
+    <div class="game-wrapper">
+        <!-- バトルエリア -->
+        <div class="battle-screen">
+            <div class="stage-info">STAGE <span id="stage-num">1</span></div>
 
-    <div class="battle-area" id="battle-area">
-        <div>
-            <span class="stat-label">ENEMY</span>
-            <div class="hp-bar-container">
-                <div id="enemy-hp-bar" class="hp-bar enemy-hp"></div>
-                <div id="enemy-hp-text" class="hp-text">100 / 100</div>
+            <div class="units-container" id="unit-view">
+                <!-- 味方 -->
+                <div class="entity walking" id="ally-entity">
+                    <div class="avatar">🛡️</div>
+                    <div class="hp-container">
+                        <div id="ally-hp-bar" class="hp-fill hp-ally"></div>
+                    </div>
+                </div>
+
+                <!-- 敵 -->
+                <div class="entity" id="enemy-entity">
+                    <div class="avatar" id="enemy-avatar">👹</div>
+                    <div class="hp-container">
+                        <div id="enemy-hp-bar" class="hp-fill hp-enemy"></div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div>
-            <span class="stat-label">ALLY</span>
-            <div class="hp-bar-container">
-                <div id="ally-hp-bar" class="hp-bar ally-hp"></div>
-                <div id="ally-hp-text" class="hp-text">100 / 100</div>
+
+        <!-- 管理エリア -->
+        <div class="management-area">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('units')">兵士雇用</button>
+                <button class="tab-btn" onclick="showTab('artifacts')">宝物図鑑</button>
+            </div>
+
+            <!-- 兵士タブ -->
+            <div id="units-tab" class="tab-content active">
+                <div id="unit-list">
+                    <!-- JSで動的に生成 -->
+                </div>
+            </div>
+
+            <!-- アーティファクトタブ -->
+            <div id="artifacts-tab" class="tab-content">
+                <div class="artifact-grid" id="artifact-list">
+                    <!-- JSで動的に生成 -->
+                </div>
+            </div>
+
+            <!-- 統計と帰還 -->
+            <div class="footer-stats">
+                <div class="stat-box">
+                    <span class="stat-lbl">所持ゴールド</span>
+                    <span id="gold-val" class="stat-val color-gold">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-lbl">所持オーブ</span>
+                    <span id="orb-val" class="stat-val color-orb">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-lbl">合計攻撃力 (DPS)</span>
+                    <span id="dps-val" class="stat-val">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-lbl">ボーナス倍率</span>
+                    <span id="multi-val" class="stat-val">x1.0</span>
+                </div>
+            </div>
+
+            <div id="return-container">
+                <button class="return-btn" id="return-btn" onclick="handleReturn()">
+                    帰還する (獲得予想: <span id="pending-orbs">0</span>)
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-item">
-            <span class="stat-label">GOLD</span>
-            <span id="gold-display" class="stat-value gold-value">0</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">ORBS</span>
-            <span id="orb-display" class="stat-value orb-value">0</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">ATK</span>
-            <span id="atk-display" class="stat-value">10</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">DMG MULTI</span>
-            <span id="multi-display" class="stat-value">x1.0</span>
-        </div>
-    </div>
+    <script>
+        // --- データ定義 ---
+        const UNIT_TYPES = [
+            { id: 'infantry', name: '歩兵', icon: '🗡️', baseAtk: 10, baseCost: 15 },
+            { id: 'archer', name: '弓兵', icon: '🏹', baseAtk: 35, baseCost: 100 },
+            { id: 'knight', name: '騎士', icon: '🏇', baseAtk: 120, baseCost: 800 }
+        ];
 
-    <div class="action-area">
-        <button id="upgrade-atk" class="btn-upgrade">
-            <span>攻撃力アップ (Lv <span id="atk-lv">1</span>)</span>
-            <span class="cost-text">Cost: <span id="atk-cost">10</span> G</span>
-        </button>
-        <button id="upgrade-multi" class="btn-upgrade">
-            <span>倍率アップ (Lv <span id="multi-lv">0</span>)</span>
-            <span class="cost-text">Cost: <span id="multi-cost">5</span> Orbs</span>
-        </button>
-        <button id="return-btn" class="btn-return">
-            帰還する (獲得: <span id="pending-orbs">0</span> Orbs)
-        </button>
-    </div>
-</div>
+        const ARTIFACT_TYPES = [
+            { id: 'sword', name: '黄金の剣', icon: '✨', desc: '全攻撃力 +50%', effect: { type: 'atk', value: 0.5 } },
+            { id: 'stone', name: '賢者の石', icon: '💎', desc: 'ゴールド獲得量 +100%', effect: { type: 'gold', value: 1.0 } },
+            { id: 'boots', name: '韋駄天の靴', icon: '👟', desc: '攻撃間隔が早くなる (仮)', effect: { type: 'spd', value: 0.2 } },
+            { id: 'shield', name: '覇王の盾', icon: '🛡️', desc: '味方の耐久力アップ', effect: { type: 'def', value: 0.5 } }
+        ];
 
-<script>
-    // --- ゲームデータ管理 ---
-    let state = {
-        stage: 1,
-        gold: 0,
-        orbs: 0,
-        atkLv: 1,
-        orbMultiLv: 0,
-        // バトル用一時データ
-        currentEnemyHp: 100,
-        maxEnemyHp: 100,
-        currentAllyHp: 100,
-        maxAllyHp: 100,
-        lastUpdate: Date.now()
-    };
+        const ENEMY_ICONS = ['👹', '💀', '👻', '🐲', '🧟', '🐺', '🦂'];
 
-    // --- 定数/計算式 ---
-    const getBaseAtk = (lv) => 10 + (lv - 1) * 5;
-    const getMulti = (lv) => 1 + lv * 0.1;
-    const getAtkCost = (lv) => Math.floor(10 * Math.pow(1.15, lv - 1));
-    const getMultiCost = (lv) => Math.floor(5 * Math.pow(1.5, lv));
-    const getEnemyMaxHp = (stage) => Math.floor(100 * Math.pow(1.2, stage - 1));
-    const getEnemyGold = (stage) => Math.floor(5 * Math.pow(1.1, stage - 1));
-    const getOrbOnReturn = (stage) => Math.floor(Math.max(0, (stage - 1) / 5));
+        // --- ゲーム状態 ---
+        let game = {
+            stage: 1,
+            gold: 0,
+            orbs: 0,
+            units: { infantry: 0, archer: 0, knight: 0 },
+            artifacts: [], // 所持しているartifactのIDリスト
+            lastSave: Date.now()
+        };
 
-    // --- セーブ/ロード機能 ---
-    function saveGame() {
-        localStorage.setItem('idleRogueSave', JSON.stringify(state));
-    }
+        // 一時的なバトル状態
+        let battle = {
+            enemyHp: 100,
+            enemyMaxHp: 100,
+            allyHp: 100,
+            allyMaxHp: 100,
+            lastTick: Date.now()
+        };
 
-    function loadGame() {
-        const saved = localStorage.getItem('idleRogueSave');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            state = { ...state, ...parsed };
-            // HPはロード時にリセット（バグ防止）
-            resetBattle();
-        }
-    }
+        // --- 便利関数 ---
+        const getUnitCost = (id, count) => {
+            const type = UNIT_TYPES.find(u => u.id === id);
+            return Math.floor(type.baseCost * Math.pow(1.15, count));
+        };
 
-    // --- UI更新 ---
-    function updateUI() {
-        // ステータス更新
-        document.getElementById('stage-num').textContent = state.stage;
-        document.getElementById('gold-display').textContent = Math.floor(state.gold);
-        document.getElementById('orb-display').textContent = Math.floor(state.orbs);
-        document.getElementById('atk-display').textContent = (getBaseAtk(state.atkLv) * getMulti(state.orbMultiLv)).toFixed(1);
-        document.getElementById('multi-display').textContent = 'x' + getMulti(state.orbMultiLv).toFixed(1);
+        const getStats = () => {
+            let rawAtk = 0;
+            UNIT_TYPES.forEach(type => {
+                rawAtk += type.baseAtk * game.units[type.id];
+            });
+            if (rawAtk === 0) rawAtk = 5; // 初期攻撃力
 
-        // アップグレードボタン更新
-        document.getElementById('atk-lv').textContent = state.atkLv;
-        const atkCost = getAtkCost(state.atkLv);
-        document.getElementById('atk-cost').textContent = atkCost;
-        document.getElementById('upgrade-atk').disabled = state.gold < atkCost;
+            let atkMulti = 1.0 + (game.orbs * 0.1); // オーブボーナス
+            let goldMulti = 1.0;
 
-        document.getElementById('multi-lv').textContent = state.orbMultiLv;
-        const multiCost = getMultiCost(state.orbMultiLv);
-        document.getElementById('multi-cost').textContent = multiCost;
-        document.getElementById('upgrade-multi').disabled = state.orbs < multiCost;
+            // アーティファクト効果
+            game.artifacts.forEach(artId => {
+                const art = ARTIFACT_TYPES.find(a => a.id === artId);
+                if (art.effect.type === 'atk') atkMulti += art.effect.value;
+                if (art.effect.type === 'gold') goldMulti += art.effect.value;
+            });
 
-        // 帰還ボタン更新
-        const pendingOrbs = getOrbOnReturn(state.stage);
-        document.getElementById('pending-orbs').textContent = pendingOrbs;
-        document.getElementById('return-btn').disabled = state.stage < 5;
+            return { dps: rawAtk * atkMulti, goldMulti };
+        };
 
-        // HPバー更新
-        updateHpBars();
-    }
-
-    function updateHpBars() {
-        const enemyPct = (state.currentEnemyHp / state.maxEnemyHp) * 100;
-        const allyPct = (state.currentAllyHp / state.maxAllyHp) * 100;
-
-        document.getElementById('enemy-hp-bar').style.width = enemyPct + '%';
-        document.getElementById('enemy-hp-text').textContent = `${Math.ceil(state.currentEnemyHp)} / ${state.maxEnemyHp}`;
-
-        document.getElementById('ally-hp-bar').style.width = allyPct + '%';
-        document.getElementById('ally-hp-text').textContent = `${Math.ceil(state.currentAllyHp)} / ${state.maxAllyHp}`;
-    }
-
-    // --- バトルロジック ---
-    function resetBattle() {
-        state.maxEnemyHp = getEnemyMaxHp(state.stage);
-        state.currentEnemyHp = state.maxEnemyHp;
-        state.maxAllyHp = 100; // この最小構成ではプレイヤーHPは固定
-        state.currentAllyHp = state.maxAllyHp;
-    }
-
-    function fight(deltaTime) {
-        // ダメージ計算 (DPS形式)
-        const allyDps = getBaseAtk(state.atkLv) * getMulti(state.orbMultiLv);
-        const enemyDps = 5 + (state.stage * 2); // 敵の攻撃力もステージで上昇
-
-        // 敵へのダメージ
-        state.currentEnemyHp -= allyDps * (deltaTime / 1000);
-        
-        // 敵が死んだ場合
-        if (state.currentEnemyHp <= 0) {
-            state.gold += getEnemyGold(state.stage);
-            state.stage++;
-            resetBattle();
-            saveGame();
-            return;
+        // --- システム機能 ---
+        function save() {
+            localStorage.setItem('idleRogueRich_Save', JSON.stringify(game));
         }
 
-        // 味方へのダメージ
-        state.currentAllyHp -= enemyDps * (deltaTime / 1000);
-
-        // 味方が負けた場合 (ステージ1に戻されるペナルティ)
-        if (state.currentAllyHp <= 0) {
-            state.stage = Math.max(1, state.stage - 1);
-            resetBattle();
-            saveGame();
+        function load() {
+            const data = localStorage.getItem('idleRogueRich_Save');
+            if (data) {
+                const parsed = JSON.parse(data);
+                game = { ...game, ...parsed };
+            }
+            initUI();
         }
-    }
 
-    // --- メインループ ---
-    function gameLoop() {
-        const now = Date.now();
-        const deltaTime = now - state.lastUpdate;
-        state.lastUpdate = now;
+        // --- UI制御 ---
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            event.target.classList.add('active');
+        }
 
-        fight(deltaTime);
+        function initUI() {
+            // ユニットリスト生成
+            const list = document.getElementById('unit-list');
+            list.innerHTML = '';
+            UNIT_TYPES.forEach(type => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.innerHTML = `
+                <div class="item-icon">${type.icon}</div>
+                <div class="item-info">
+                    <span class="item-name">${type.name} (Lv <span id="lv-${type.id}">${game.units[type.id]}</span>)</span>
+                    <span class="item-desc">攻撃力: ${type.baseAtk} / 次: <span id="cost-${type.id}">${getUnitCost(type.id, game.units[type.id])}</span> G</span>
+                </div>
+                <button class="buy-btn" id="btn-${type.id}" onclick="buyUnit('${type.id}')">雇用</button>
+            `;
+                list.appendChild(card);
+            });
+
+            // アーティファクト図鑑生成
+            const artList = document.getElementById('artifact-list');
+            artList.innerHTML = '';
+            ARTIFACT_TYPES.forEach(art => {
+                const slot = document.createElement('div');
+                slot.className = `artifact-slot ${game.artifacts.includes(art.id) ? 'owned' : ''}`;
+                slot.innerHTML = art.icon;
+                slot.title = `${art.name}: ${art.desc}`;
+                artList.appendChild(slot);
+            });
+        }
+
+        function updateUI() {
+            const stats = getStats();
+            document.getElementById('stage-num').textContent = game.stage;
+            document.getElementById('gold-val').textContent = Math.floor(game.gold);
+            document.getElementById('orb-val').textContent = game.orbs;
+            document.getElementById('dps-val').textContent = Math.floor(stats.dps);
+            document.getElementById('multi-val').textContent = `x${(stats.dps / (UNIT_TYPES.reduce((s, t) => s + t.baseAtk * game.units[t.id], 0) || 5)).toFixed(1)}`;
+
+            UNIT_TYPES.forEach(type => {
+                const cost = getUnitCost(type.id, game.units[type.id]);
+                document.getElementById(`lv-${type.id}`).textContent = game.units[type.id];
+                document.getElementById(`cost-${type.id}`).textContent = cost;
+                document.getElementById(`btn-${type.id}`).disabled = game.gold < cost;
+            });
+
+            const pending = Math.floor(game.stage / 10);
+            document.getElementById('pending-orbs').textContent = pending;
+            document.getElementById('return-btn').disabled = game.stage < 10;
+
+            // HPバー
+            document.getElementById('enemy-hp-bar').style.width = (battle.enemyHp / battle.enemyMaxHp * 100) + '%';
+            document.getElementById('ally-hp-bar').style.width = (battle.allyHp / battle.allyMaxHp * 100) + '%';
+        }
+
+        // --- ロジック ---
+        function buyUnit(id) {
+            const cost = getUnitCost(id, game.units[id]);
+            if (game.gold >= cost) {
+                game.gold -= cost;
+                game.units[id]++;
+                updateUI();
+                save();
+            }
+        }
+
+        function createDamageText(amount, xOffset) {
+            const container = document.querySelector('.battle-screen');
+            const el = document.createElement('div');
+            el.className = 'damage-popup';
+            el.textContent = `-${Math.floor(amount)}`;
+            el.style.left = `calc(50% + ${xOffset}px)`;
+            el.style.top = `50%`;
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        function spawnNextEnemy() {
+            game.stage++;
+            battle.enemyMaxHp = Math.floor(100 * Math.pow(1.25, game.stage - 1));
+            battle.enemyHp = battle.enemyMaxHp;
+
+            const avatar = ENEMY_ICONS[Math.floor(Math.random() * ENEMY_ICONS.length)];
+            const enemyEl = document.getElementById('enemy-entity');
+
+            // スライド演出: 一旦消して右から
+            enemyEl.style.transform = 'translateX(100px)';
+            enemyEl.style.opacity = '0';
+
+            setTimeout(() => {
+                document.getElementById('enemy-avatar').textContent = avatar;
+                enemyEl.style.transform = 'translateX(0)';
+                enemyEl.style.opacity = '1';
+            }, 300);
+        }
+
+        function handleReturn() {
+            if (confirm('帰還してオーブと宝物を手に入れますか？（進行状況はリセットされます）')) {
+                const stats = getStats();
+                game.orbs += Math.floor(game.stage / 10);
+
+                // アーティファクト抽選 (10% + ステージに応じたボーナス)
+                if (Math.random() < 0.1 + (game.stage / 500)) {
+                    const unowned = ARTIFACT_TYPES.filter(a => !game.artifacts.includes(a.id));
+                    if (unowned.length > 0) {
+                        const picked = unowned[Math.floor(Math.random() * unowned.length)];
+                        game.artifacts.push(picked.id);
+                        alert(`新発見！【${picked.name}】を手に入れた！\n効果: ${picked.desc}`);
+                    }
+                }
+
+                game.stage = 1;
+                game.gold = 0;
+                // ユニットもリセット（永続強化はオーブとアーティファクトで行う）
+                Object.keys(game.units).forEach(k => game.units[k] = 0);
+
+                battle.enemyMaxHp = 100;
+                battle.enemyHp = 100;
+                battle.allyHp = 100;
+
+                initUI();
+                updateUI();
+                save();
+            }
+        }
+
+        function gameLoop() {
+            const now = Date.now();
+            const dt = (now - battle.lastTick) / 1000;
+            battle.lastTick = now;
+
+            const stats = getStats();
+
+            // 敵へのダメージ
+            const dmgToEnemy = stats.dps * dt;
+            battle.enemyHp -= dmgToEnemy;
+
+            // ダメージ演出 (0.5秒おきに表示)
+            if (now % 500 < 30) {
+                createDamageText(stats.dps / 2, 40);
+                document.getElementById('enemy-entity').classList.add('hit-flash');
+                setTimeout(() => document.getElementById('enemy-entity').classList.remove('hit-flash'), 200);
+            }
+
+            if (battle.enemyHp <= 0) {
+                game.gold += 10 * Math.pow(1.2, game.stage - 1) * stats.goldMulti;
+                spawnNextEnemy();
+            }
+
+            // 味方へのダメージ（簡易版：ステージが進むほど痛い）
+            const monsterDmg = (5 + game.stage * 1.5) * dt;
+            battle.allyHp -= monsterDmg;
+
+            if (battle.allyHp <= 0) {
+                // 敗北：ステージ後退
+                game.stage = Math.max(1, game.stage - 1);
+                battle.enemyMaxHp = Math.floor(100 * Math.pow(1.25, game.stage - 1));
+                battle.enemyHp = battle.enemyMaxHp;
+                battle.allyHp = 100;
+            }
+
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- 開始 ---
+        load();
         updateUI();
-
+        setInterval(save, 10000); // 10秒オートセーブ
         requestAnimationFrame(gameLoop);
-    }
 
-    // --- イベントリスナー ---
-    document.getElementById('upgrade-atk').addEventListener('click', () => {
-        const cost = getAtkCost(state.atkLv);
-        if (state.gold >= cost) {
-            state.gold -= cost;
-            state.atkLv++;
-            updateUI();
-            saveGame();
-        }
-    });
-
-    document.getElementById('upgrade-multi').addEventListener('click', () => {
-        const cost = getMultiCost(state.orbMultiLv);
-        if (state.orbs >= cost) {
-            state.orbs -= cost;
-            state.orbMultiLv++;
-            updateUI();
-            saveGame();
-        }
-    });
-
-    document.getElementById('return-btn').addEventListener('click', () => {
-        if (confirm('現在のステージとゴールドをリセットして帰還しますか？オーブが手に入ります。')) {
-            state.orbs += getOrbOnReturn(state.stage);
-            state.stage = 1;
-            state.gold = 0;
-            state.atkLv = 1; // 攻撃力レベルはリセットされる（一般的なローグライクシステム）
-            resetBattle();
-            updateUI();
-            saveGame();
-        }
-    });
-
-    // --- 初期化 ---
-    loadGame();
-    resetBattle();
-    requestAnimationFrame(gameLoop);
-
-    // 10秒ごとにオートセーブ
-    setInterval(saveGame, 10000);
-</script>
+    </script>
 
 </body>
+
 </html>
