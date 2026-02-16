@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idle Rogue Mini - 放置型ローグライク</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent-primary: #38bdf8;
+            --accent-secondary: #818cf8;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --gold: #fbbf24;
+            --orb: #a855f7;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 500px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.5rem;
+            background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stage-display {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+        }
+
+        /* バトルの視覚表現 */
+        .battle-area {
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .hp-bar-container {
+            width: 100%;
+            height: 24px;
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .hp-bar {
+            height: 100%;
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        .ally-hp { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+        .enemy-hp { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+        .hp-text {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            top: 0;
+            line-height: 24px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* 統計情報 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            display: block;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .gold-value { color: var(--gold); }
+        .orb-value { color: var(--orb); }
+
+        /* アップグレードエリア */
+        .action-area {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        button {
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        button:active { transform: scale(0.98); }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .btn-upgrade {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-primary);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .btn-upgrade:hover:not(:disabled) {
+            background: rgba(56, 189, 248, 0.25);
+        }
+
+        .btn-return {
+            background: rgba(168, 85, 247, 0.2);
+            color: var(--orb);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            margin-top: 10px;
+            justify-content: center;
+        }
+        .btn-return:hover:not(:disabled) {
+            background: rgba(168, 85, 247, 0.3);
+        }
+
+        .cost-text {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        /* アニメーション */
+        @keyframes damage {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            50% { transform: translateX(2px); }
+            75% { transform: translateX(-1px); }
+            100% { transform: translateX(0); }
+        }
+
+        .shake { animation: damage 0.2s ease-in-out; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>Idle Rogue Mini</h1>
+    <div class="stage-display">STAGE <span id="stage-num">1</span></div>
+
+    <div class="battle-area" id="battle-area">
+        <div>
+            <span class="stat-label">ENEMY</span>
+            <div class="hp-bar-container">
+                <div id="enemy-hp-bar" class="hp-bar enemy-hp"></div>
+                <div id="enemy-hp-text" class="hp-text">100 / 100</div>
+            </div>
+        </div>
+        <div>
+            <span class="stat-label">ALLY</span>
+            <div class="hp-bar-container">
+                <div id="ally-hp-bar" class="hp-bar ally-hp"></div>
+                <div id="ally-hp-text" class="hp-text">100 / 100</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-item">
+            <span class="stat-label">GOLD</span>
+            <span id="gold-display" class="stat-value gold-value">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">ORBS</span>
+            <span id="orb-display" class="stat-value orb-value">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">ATK</span>
+            <span id="atk-display" class="stat-value">10</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">DMG MULTI</span>
+            <span id="multi-display" class="stat-value">x1.0</span>
+        </div>
+    </div>
+
+    <div class="action-area">
+        <button id="upgrade-atk" class="btn-upgrade">
+            <span>攻撃力アップ (Lv <span id="atk-lv">1</span>)</span>
+            <span class="cost-text">Cost: <span id="atk-cost">10</span> G</span>
+        </button>
+        <button id="upgrade-multi" class="btn-upgrade">
+            <span>倍率アップ (Lv <span id="multi-lv">0</span>)</span>
+            <span class="cost-text">Cost: <span id="multi-cost">5</span> Orbs</span>
+        </button>
+        <button id="return-btn" class="btn-return">
+            帰還する (獲得: <span id="pending-orbs">0</span> Orbs)
+        </button>
+    </div>
+</div>
+
+<script>
+    // --- ゲームデータ管理 ---
+    let state = {
+        stage: 1,
+        gold: 0,
+        orbs: 0,
+        atkLv: 1,
+        orbMultiLv: 0,
+        // バトル用一時データ
+        currentEnemyHp: 100,
+        maxEnemyHp: 100,
+        currentAllyHp: 100,
+        maxAllyHp: 100,
+        lastUpdate: Date.now()
+    };
+
+    // --- 定数/計算式 ---
+    const getBaseAtk = (lv) => 10 + (lv - 1) * 5;
+    const getMulti = (lv) => 1 + lv * 0.1;
+    const getAtkCost = (lv) => Math.floor(10 * Math.pow(1.15, lv - 1));
+    const getMultiCost = (lv) => Math.floor(5 * Math.pow(1.5, lv));
+    const getEnemyMaxHp = (stage) => Math.floor(100 * Math.pow(1.2, stage - 1));
+    const getEnemyGold = (stage) => Math.floor(5 * Math.pow(1.1, stage - 1));
+    const getOrbOnReturn = (stage) => Math.floor(Math.max(0, (stage - 1) / 5));
+
+    // --- セーブ/ロード機能 ---
+    function saveGame() {
+        localStorage.setItem('idleRogueSave', JSON.stringify(state));
+    }
+
+    function loadGame() {
+        const saved = localStorage.getItem('idleRogueSave');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            state = { ...state, ...parsed };
+            // HPはロード時にリセット（バグ防止）
+            resetBattle();
+        }
+    }
+
+    // --- UI更新 ---
+    function updateUI() {
+        // ステータス更新
+        document.getElementById('stage-num').textContent = state.stage;
+        document.getElementById('gold-display').textContent = Math.floor(state.gold);
+        document.getElementById('orb-display').textContent = Math.floor(state.orbs);
+        document.getElementById('atk-display').textContent = (getBaseAtk(state.atkLv) * getMulti(state.orbMultiLv)).toFixed(1);
+        document.getElementById('multi-display').textContent = 'x' + getMulti(state.orbMultiLv).toFixed(1);
+
+        // アップグレードボタン更新
+        document.getElementById('atk-lv').textContent = state.atkLv;
+        const atkCost = getAtkCost(state.atkLv);
+        document.getElementById('atk-cost').textContent = atkCost;
+        document.getElementById('upgrade-atk').disabled = state.gold < atkCost;
+
+        document.getElementById('multi-lv').textContent = state.orbMultiLv;
+        const multiCost = getMultiCost(state.orbMultiLv);
+        document.getElementById('multi-cost').textContent = multiCost;
+        document.getElementById('upgrade-multi').disabled = state.orbs < multiCost;
+
+        // 帰還ボタン更新
+        const pendingOrbs = getOrbOnReturn(state.stage);
+        document.getElementById('pending-orbs').textContent = pendingOrbs;
+        document.getElementById('return-btn').disabled = state.stage < 5;
+
+        // HPバー更新
+        updateHpBars();
+    }
+
+    function updateHpBars() {
+        const enemyPct = (state.currentEnemyHp / state.maxEnemyHp) * 100;
+        const allyPct = (state.currentAllyHp / state.maxAllyHp) * 100;
+
+        document.getElementById('enemy-hp-bar').style.width = enemyPct + '%';
+        document.getElementById('enemy-hp-text').textContent = `${Math.ceil(state.currentEnemyHp)} / ${state.maxEnemyHp}`;
+
+        document.getElementById('ally-hp-bar').style.width = allyPct + '%';
+        document.getElementById('ally-hp-text').textContent = `${Math.ceil(state.currentAllyHp)} / ${state.maxAllyHp}`;
+    }
+
+    // --- バトルロジック ---
+    function resetBattle() {
+        state.maxEnemyHp = getEnemyMaxHp(state.stage);
+        state.currentEnemyHp = state.maxEnemyHp;
+        state.maxAllyHp = 100; // この最小構成ではプレイヤーHPは固定
+        state.currentAllyHp = state.maxAllyHp;
+    }
+
+    function fight(deltaTime) {
+        // ダメージ計算 (DPS形式)
+        const allyDps = getBaseAtk(state.atkLv) * getMulti(state.orbMultiLv);
+        const enemyDps = 5 + (state.stage * 2); // 敵の攻撃力もステージで上昇
+
+        // 敵へのダメージ
+        state.currentEnemyHp -= allyDps * (deltaTime / 1000);
+        
+        // 敵が死んだ場合
+        if (state.currentEnemyHp <= 0) {
+            state.gold += getEnemyGold(state.stage);
+            state.stage++;
+            resetBattle();
+            saveGame();
+            return;
+        }
+
+        // 味方へのダメージ
+        state.currentAllyHp -= enemyDps * (deltaTime / 1000);
+
+        // 味方が負けた場合 (ステージ1に戻されるペナルティ)
+        if (state.currentAllyHp <= 0) {
+            state.stage = Math.max(1, state.stage - 1);
+            resetBattle();
+            saveGame();
+        }
+    }
+
+    // --- メインループ ---
+    function gameLoop() {
+        const now = Date.now();
+        const deltaTime = now - state.lastUpdate;
+        state.lastUpdate = now;
+
+        fight(deltaTime);
+        updateUI();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // --- イベントリスナー ---
+    document.getElementById('upgrade-atk').addEventListener('click', () => {
+        const cost = getAtkCost(state.atkLv);
+        if (state.gold >= cost) {
+            state.gold -= cost;
+            state.atkLv++;
+            updateUI();
+            saveGame();
+        }
+    });
+
+    document.getElementById('upgrade-multi').addEventListener('click', () => {
+        const cost = getMultiCost(state.orbMultiLv);
+        if (state.orbs >= cost) {
+            state.orbs -= cost;
+            state.orbMultiLv++;
+            updateUI();
+            saveGame();
+        }
+    });
+
+    document.getElementById('return-btn').addEventListener('click', () => {
+        if (confirm('現在のステージとゴールドをリセットして帰還しますか？オーブが手に入ります。')) {
+            state.orbs += getOrbOnReturn(state.stage);
+            state.stage = 1;
+            state.gold = 0;
+            state.atkLv = 1; // 攻撃力レベルはリセットされる（一般的なローグライクシステム）
+            resetBattle();
+            updateUI();
+            saveGame();
+        }
+    });
+
+    // --- 初期化 ---
+    loadGame();
+    resetBattle();
+    requestAnimationFrame(gameLoop);
+
+    // 10秒ごとにオートセーブ
+    setInterval(saveGame, 10000);
+</script>
+
+</body>
+</html>
