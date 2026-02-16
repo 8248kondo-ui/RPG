@@ -473,10 +473,10 @@
 
         // 一時的なバトル状態
         let battle = {
-            enemyHp: 100,
-            enemyMaxHp: 100,
-            allyHp: 100,
-            allyMaxHp: 100,
+            enemyHp: 50,
+            enemyMaxHp: 50,
+            allyHp: 200,
+            allyMaxHp: 200,
             lastTick: Date.now()
         };
 
@@ -606,7 +606,7 @@
 
         function spawnNextEnemy() {
             game.stage++;
-            battle.enemyMaxHp = Math.floor(100 * Math.pow(1.25, game.stage - 1));
+            battle.enemyMaxHp = Math.floor(50 * Math.pow(1.2, game.stage - 1));
             battle.enemyHp = battle.enemyMaxHp;
 
             const avatar = ENEMY_ICONS[Math.floor(Math.random() * ENEMY_ICONS.length)];
@@ -643,9 +643,10 @@
                 // ユニットもリセット（永続強化はオーブとアーティファクトで行う）
                 Object.keys(game.units).forEach(k => game.units[k] = 0);
 
-                battle.enemyMaxHp = 100;
-                battle.enemyHp = 100;
-                battle.allyHp = 100;
+                battle.enemyMaxHp = 50;
+                battle.enemyHp = 50;
+                battle.allyHp = 200;
+                battle.allyMaxHp = 200;
 
                 initUI();
                 updateUI();
@@ -676,16 +677,16 @@
                 spawnNextEnemy();
             }
 
-            // 味方へのダメージ（簡易版：ステージが進むほど痛い）
-            const monsterDmg = (5 + game.stage * 1.5) * dt;
+            // 味方へのダメージ（初期2ダメージ + ステージごとに僅かに上昇）
+            const monsterDmg = (2 + game.stage * 1.2) * dt;
             battle.allyHp -= monsterDmg;
 
             if (battle.allyHp <= 0) {
                 // 敗北：ステージ後退
                 game.stage = Math.max(1, game.stage - 1);
-                battle.enemyMaxHp = Math.floor(100 * Math.pow(1.25, game.stage - 1));
+                battle.enemyMaxHp = Math.floor(50 * Math.pow(1.2, game.stage - 1));
                 battle.enemyHp = battle.enemyMaxHp;
-                battle.allyHp = 100;
+                battle.allyHp = 200;
             }
 
             updateUI();
