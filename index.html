@@ -19,8 +19,13 @@
             --orb: #a855f7;
         }
 
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
             background-color: #020617;
             color: var(--text-main);
             margin: 0;
@@ -29,11 +34,20 @@
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
+            font-size: 16px;
+            /* Base font for mobile scaling */
+        }
+
+        @media (max-width: 480px) {
+            body {
+                font-size: 14px;
+            }
         }
 
         .game-wrapper {
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
+            /* Slightly wider for better UI */
             height: 100vh;
             background-color: var(--bg-color);
             display: flex;
@@ -44,23 +58,72 @@
 
         /* バトルエリア */
         .battle-screen {
-            flex: 0 0 40%;
+            flex: 0 0 35%;
             position: relative;
             background: linear-gradient(to bottom, #1e1b4b, #0f172a);
-            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
             overflow: hidden;
+            transition: box-shadow 0.3s;
         }
 
         .stage-info {
             position: absolute;
-            top: 20px;
+            top: 15px;
             width: 100%;
             text-align: center;
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-size: 1.8rem;
+            font-weight: 800;
             color: var(--accent-primary);
-            text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
             z-index: 10;
+        }
+
+        /* Stage Down エフェクト */
+        .stage-down-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 40%, rgba(239, 68, 68, 0.4) 100%);
+        }
+
+        .stage-down-text {
+            color: #ff4444;
+            font-size: 3rem;
+            font-weight: 900;
+            text-shadow: 0 0 20px black;
+            animation: warningShake 0.5s infinite;
+        }
+
+        @keyframes warningShake {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .edge-flash-red {
+            animation: redFlash 0.5s 3;
+        }
+
+        @keyframes redFlash {
+
+            0%,
+            100% {
+                box-shadow: inset 0 0 0px var(--danger);
+            }
+
+            50% {
+                box-shadow: inset 0 0 40px var(--danger);
+            }
         }
 
         .units-container {
@@ -68,66 +131,283 @@
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding: 0 20px;
+            padding-top: 30px;
         }
 
         .entity {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
-            transition: transform 0.2s;
+            gap: 12px;
+            position: relative;
         }
 
         .avatar {
-            font-size: 3rem;
-            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+            font-size: 3.5rem;
+            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.3));
         }
 
         .hp-container {
-            width: 80px;
-            height: 8px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 4px;
+            width: 100px;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 5px;
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .hp-fill {
             height: 100%;
             width: 100%;
-            transition: width 0.3s ease-out;
+            transition: width 0.2s ease-out;
         }
 
         .hp-ally {
-            background-color: var(--success);
+            background: linear-gradient(90deg, #10b981, #34d399);
         }
 
         .hp-enemy {
-            background-color: var(--danger);
+            background: linear-gradient(90deg, #ef4444, #f87171);
         }
 
-        /* アニメーション */
-        .walking {
-            animation: bob 0.6s infinite ease-in-out;
+        /* 管理エリア */
+        .management-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-color);
+            padding: 10px;
+            overflow: hidden;
         }
 
-        @keyframes bob {
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
 
-            0%,
+        .tab-btn {
+            flex: 1;
+            padding: 12px 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-dim);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-primary);
+            color: var(--bg-color);
+            border-color: var(--accent-primary);
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ショップ・実績 */
+        .shop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .shop-title {
+            color: var(--accent-primary);
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        .item-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .item-icon-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .unit-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            font-weight: bold;
+        }
+
+        .item-icon {
+            font-size: 2.2rem;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: bold;
+            color: var(--text-main);
+            font-size: 1rem;
+        }
+
+        .item-desc {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .buy-btn {
+            padding: 10px 14px;
+            background: var(--accent-secondary);
+            border-radius: 10px;
+            color: white;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* ポップアップ演出 */
+        .atk-up-pop {
+            position: absolute;
+            color: #fbbf24;
+            font-weight: 900;
+            font-size: 1.4rem;
+            pointer-events: none;
+            animation: atkPop 0.6s ease-out forwards;
+            z-index: 200;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+
+        @keyframes atkPop {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            30% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+
             100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-10px);
+                transform: translateY(-40px) scale(1);
+                opacity: 0;
             }
         }
 
-        .hit-flash {
-            animation: flash 0.2s;
+        /* 実績セクション */
+        .mission-area {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(168, 85, 247, 0.2);
         }
 
+        .mission-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--orb);
+            margin-bottom: 5px;
+        }
+
+        .mission-item {
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        /* ヘルプボタン */
+        .help-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 100;
+            font-weight: bold;
+        }
+
+        /* モーダル共通 */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 3000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .help-content h3 {
+            color: var(--accent-primary);
+            border-bottom: 1px solid #334155;
+            padding-bottom: 5px;
+        }
+
+        .help-content p {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-dim);
+        }
+
+        /* アーティファクト詳細（ガチャ用） */
+        .gacha-item-detail {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            color: var(--accent-secondary);
+        }
+
+        /* アニメーション：ヒット演出 */
         @keyframes flash {
 
             0%,
@@ -142,11 +422,12 @@
 
         .damage-popup {
             position: absolute;
-            font-weight: bold;
-            font-size: 1.2rem;
+            font-weight: 900;
+            font-size: 1.5rem;
             pointer-events: none;
             animation: floatUp 0.8s forwards;
             z-index: 100;
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, 1);
         }
 
         @keyframes floatUp {
@@ -156,135 +437,24 @@
             }
 
             100% {
-                transform: translateY(-50px);
+                transform: translateY(-60px);
                 opacity: 0;
             }
         }
 
-        /* 管理エリア */
-        .management-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg-color);
-            padding: 15px;
-            overflow: hidden;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-dim);
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-        }
-
-        .tab-btn.active {
-            background: var(--accent-primary);
-            color: var(--bg-color);
-            border-color: var(--accent-primary);
-            font-weight: bold;
-        }
-
-        .tab-content {
-            display: none;
-            flex: 1;
-            overflow-y: auto;
-            padding-right: 5px;
-        }
-
-        .tab-content.active {
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* ショップヘッダー */
-        .shop-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 0 5px;
-        }
-
-        .shop-title {
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: var(--accent-primary);
-        }
-
-        .toggle-btn {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-main);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .toggle-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        /* カード類 */
-        .item-card {
-            background: var(--card-bg);
-            border-radius: 16px;
+        .footer-stats {
+            background: #020617;
             padding: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            border-radius: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: auto;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: transform 0.2s;
         }
 
-        .item-icon {
-            font-size: 2rem;
-        }
-
-        .item-info {
-            flex: 1;
-        }
-
-        .item-name {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .item-desc {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-        }
-
-        .buy-btn {
-            padding: 8px 16px;
-            background: var(--accent-secondary);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .buy-btn:disabled {
-            background: #475569;
-            opacity: 0.5;
-            cursor: not-allowed;
+        .stat-val {
+            font-size: 1.1rem;
         }
 
         /* アーティファクト */
@@ -486,9 +656,15 @@
 
 <body>
 
-    <div class="game-wrapper">
-        <div class="battle-screen">
-            <div class="stage-info">STAGE <span id="stage-num">1</span></div>
+    <div class="game-wrapper" id="game-wrapper">
+        <div class="help-btn" onclick="openHelp()">?</div>
+
+        <div class="battle-screen" id="battle-screen">
+            <div id="stage-down-overlay" class="stage-down-overlay">
+                <div class="stage-down-text">⚠ Stage Down ⚠</div>
+            </div>
+
+            <div class="stage-info" id="stage-info-display">STAGE <span id="stage-num">1</span></div>
             <div class="units-container">
                 <div class="entity walking" id="ally-entity">
                     <div class="avatar">🛡️</div>
@@ -506,6 +682,14 @@
         </div>
 
         <div class="management-area">
+            <!-- 実績 / ミッション -->
+            <div class="mission-area">
+                <div class="mission-title">🎯 デイリー実績</div>
+                <div id="mission-list">
+                    <!-- JSで動的に追加 -->
+                </div>
+            </div>
+
             <div class="tabs">
                 <button class="tab-btn active" onclick="showTab('units')">兵士</button>
                 <button class="tab-btn" onclick="showTab('artifacts')">宝物</button>
@@ -566,7 +750,8 @@
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px;">到達ステージ: <span
                             id="res-stage">1</span></div>
                     <div style="display:flex; justify-content:space-between; color:var(--orb); font-weight:bold;">獲得オーブ:
-                        <span id="res-orbs">0</span></div>
+                        <span id="res-orbs">0</span>
+                    </div>
                 </div>
                 <div style="background:rgba(0,0,0,0.2); border-radius:12px; padding:15px; margin-bottom:25px;">
                     <div style="font-size:0.8rem; color:var(--text-dim); margin-bottom:10px;">獲得した宝物</div>
@@ -574,6 +759,21 @@
                 </div>
                 <button class="gacha-btn" onclick="closeResult()"
                     style="background:var(--accent-primary); color:var(--bg-color);">次元を越える</button>
+            </div>
+        </div>
+
+        <!-- ヘルプモーダル -->
+        <div id="help-modal" class="modal" onclick="closeHelp()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <span class="close-modal" onclick="closeHelp()">&times;</span>
+                <div class="help-content">
+                    <h3>遊び方</h3>
+                    <p><b>1. 兵士を雇おう:</b> 獲得したゴールドで兵士を雇用し、DPSを上げてください。</p>
+                    <p><b>2. ステージを進もう:</b> 敵を倒すと自動的に次のステージへ進みます。10ステージごとにボスが出現します。</p>
+                    <p><b>3. 帰還して強化:</b> 限界を感じたら「帰還」しましょう。ステージ数に応じたオーブを獲得し、アーティファクトで永久強化できます。</p>
+                    <p><b>4. ガチャで秘宝入手:</b> オーブを使い、強力な特殊能力を持つアーティファクトを引き当てましょう。</p>
+                    <p><b>5. レア敵出現:</b> 低確率で大量のゴールドを落とすレア敵が出現します！</p>
+                </div>
             </div>
         </div>
 
@@ -601,24 +801,118 @@
         };
 
         const ARTIFACT_DATA = [
+            // --- [武器系：全攻撃力アップ] ---
+            { id: 'wood_stick', rarity: 'N', name: '木の棒', icon: '🦯', effect: 'atk_add', value: 0.05 },
+            { id: 'bronze_dagger', rarity: 'N', name: '銅の短剣', icon: '🔪', effect: 'atk_add', value: 0.10 },
+            { id: 'hunter_bow', rarity: 'N', name: '狩人の弓', icon: '🏹', effect: 'atk_add', value: 0.15 },
+            { id: 'apprentice_staff', rarity: 'N', name: '見習いの杖', icon: '🪄', effect: 'atk_add', value: 0.15 },
+            { id: 'stone_axe', rarity: 'N', name: '石の斧', icon: '🪓', effect: 'atk_add', value: 0.20 },
+            { id: 'steel_sword', rarity: 'R', name: '鋼の長剣', icon: '⚔️', effect: 'atk_add', value: 0.35 },
+            { id: 'knight_spear', rarity: 'R', name: '騎士の槍', icon: '🔱', effect: 'atk_add', value: 0.40 },
+            { id: 'battle_axe', rarity: 'R', name: 'バトルアックス', icon: '🪓', effect: 'atk_add', value: 0.45 },
+            { id: 'mage_staff', rarity: 'R', name: '魔道士の杖', icon: '🔮', effect: 'atk_add', value: 0.45 },
+            { id: 'cross_bow', rarity: 'R', name: 'クロスボウ', icon: '🏹', effect: 'atk_add', value: 0.50 },
+            { id: 'platinum_sword', rarity: 'HR', name: 'プラチナソード', icon: '🗡️', effect: 'atk_add', value: 0.60 },
+            { id: 'guren_staff', rarity: 'HR', name: '紅蓮の杖', icon: '🔥', effect: 'atk_add', value: 0.65 },
+            { id: 'berserker_axe', rarity: 'HR', name: '狂戦士の斧', icon: '🪓', effect: 'atk_add', value: 0.70 },
+            { id: 'sniper_bow', rarity: 'HR', name: 'スナイパーボウ', icon: '🎯', effect: 'atk_add', value: 0.75 },
+            { id: 'dragon_spear', rarity: 'HR', name: '竜骨の槍', icon: '🐉', effect: 'atk_add', value: 0.80 },
+            { id: 'oric_sword', rarity: 'SR', name: 'オリハルコンの剣', icon: '✨', effect: 'atk_add', value: 0.85 },
+            { id: 'holy_spear', rarity: 'SR', name: '聖騎士の槍', icon: '🔱', effect: 'atk_add', value: 0.90 },
+            { id: 'stardust_staff', rarity: 'SR', name: '星屑の杖', icon: '🌟', effect: 'atk_add', value: 0.90 },
+            { id: 'giant_axe', rarity: 'SR', name: '巨人の斧', icon: '🔨', effect: 'atk_add', value: 0.95 },
+            { id: 'angel_bow', rarity: 'SR', name: '天使の弓', icon: '👼', effect: 'atk_add', value: 1.00 },
+            { id: 'excalibur', rarity: 'L', name: '聖剣エクスカリバー', icon: '⚔️', effect: 'atk_add', value: 4.00, special: 'holy_regen' },
+            { id: 'muramasa', rarity: 'L', name: '妖刀村正', icon: '🔪', effect: 'atk_add', value: 4.50, special: 'curse_atk' },
+            { id: 'sun_staff', rarity: 'L', name: '太陽の杖', icon: '☀️', effect: 'atk_add', value: 3.50, special: 'area_damage' },
+            { id: 'destruct_axe', rarity: 'L', name: '破壊の斧', icon: '🪓', effect: 'atk_add', value: 4.00, special: 'crit_up' },
+            { id: 'celestial_bow', rarity: 'L', name: '天穹の弓', icon: '🏹', effect: 'atk_add', value: 3.50, special: 'pierce_shot' },
+
+            // --- [盾系：防御力アップ] ---
+            { id: 'wood_buckler', rarity: 'N', name: '木のバックラー', icon: '🛡️', effect: 'hp_multi', value: 0.10 },
+            { id: 'leather_shield', rarity: 'N', name: '皮の盾', icon: '🛡️', effect: 'hp_multi', value: 0.15 },
+            { id: 'bronze_shield', rarity: 'N', name: '銅の盾', icon: '🛡️', effect: 'hp_multi', value: 0.20 },
+            { id: 'pot_lid', rarity: 'N', name: 'なべのふた', icon: '🍳', effect: 'hp_multi', value: 0.05 },
+            { id: 'soldier_shield', rarity: 'N', name: '兵士の盾', icon: '🛡️', effect: 'hp_multi', value: 0.20 },
+            { id: 'steel_shield', rarity: 'R', name: '鋼の盾', icon: '🛡️', effect: 'hp_multi', value: 0.35 },
+            { id: 'silver_shield', rarity: 'R', name: '銀の盾', icon: '🛡️', effect: 'hp_multi', value: 0.40 },
+            { id: 'knight_shield', rarity: 'R', name: '騎士の盾', icon: '🛡️', effect: 'hp_multi', value: 0.45 },
+            { id: 'round_shield', rarity: 'R', name: 'ラウンドシールド', icon: '🛡️', effect: 'hp_multi', value: 0.40 },
+            { id: 'kite_shield', rarity: 'R', name: 'カイトシールド', icon: '🛡️', effect: 'hp_multi', value: 0.50 },
+            { id: 'plat_shield', rarity: 'HR', name: 'プラチナの盾', icon: '🛡️', effect: 'hp_multi', value: 0.60 },
+            { id: 'mithril_shield', rarity: 'HR', name: 'ミスリルの盾', icon: '🛡️', effect: 'hp_multi', value: 0.65 },
+            { id: 'ice_shield', rarity: 'HR', name: '氷結の盾', icon: '❄️', effect: 'hp_multi', value: 0.70 },
+            { id: 'dragon_shield', rarity: 'HR', name: '竜鱗の盾', icon: '🛡️', effect: 'hp_multi', value: 0.75 },
+            { id: 'tower_shield', rarity: 'HR', name: 'タワーシールド', icon: '🛡️', effect: 'hp_multi', value: 0.80 },
+            { id: 'oric_shield', rarity: 'SR', name: 'オリハルコンの盾', icon: '🛡️', effect: 'hp_multi', value: 0.85 },
+            { id: 'holy_shield', rarity: 'SR', name: '聖騎士の盾', icon: '🛡️', effect: 'hp_multi', value: 0.90 },
+            { id: 'stardust_shield', rarity: 'SR', name: '星屑の盾', icon: '✨', effect: 'hp_multi', value: 0.95 },
+            { id: 'giant_shield', rarity: 'SR', name: '巨人の盾', icon: '🛡️', effect: 'hp_multi', value: 0.95 },
+            { id: 'spirit_shield', rarity: 'SR', name: '精霊の盾', icon: '🍃', effect: 'hp_multi', value: 1.00 },
+            { id: 'aegis', rarity: 'L', name: '神盾イージス', icon: '🛡️', effect: 'hp_multi', value: 4.00, special: 'cheat_death' },
+            { id: 'prydwen', rarity: 'L', name: '聖盾プリトウェン', icon: '🛡️', effect: 'hp_multi', value: 3.50, special: 'reflect_dmg' },
+            { id: 'genbu_shell', rarity: 'L', name: '玄武の甲羅', icon: '🐢', effect: 'hp_multi', value: 5.00, special: 'slow_move' },
+            { id: 'argos', rarity: 'L', name: '魔盾アルゴス', icon: '🛡️', effect: 'hp_multi', value: 4.50, special: 'resist_all' },
+            { id: 'void_shield', rarity: 'L', name: '虚無の盾', icon: '🌀', effect: 'hp_multi', value: 4.00, special: 'absorb_atk' },
+
+            // --- [コイン系：お金獲得率アップ] ---
+            { id: 'copper_coin', rarity: 'N', name: '銅貨', icon: '🪙', effect: 'gold_multi', value: 0.10 },
+            { id: 'old_wallet', rarity: 'N', name: '古びた財布', icon: '👛', effect: 'gold_multi', value: 0.15 },
+            { id: 'small_gem', rarity: 'N', name: '小さな宝石', icon: '💎', effect: 'gold_multi', value: 0.15 },
+            { id: 'silver_ring', rarity: 'N', name: '銀の指輪', icon: '💍', effect: 'gold_multi', value: 0.20 },
+            { id: 'piggy_bank', rarity: 'N', name: '貯金箱', icon: '🐷', effect: 'gold_multi', value: 0.25 },
+            { id: 'silver_coin', rarity: 'R', name: '銀貨', icon: '🪙', effect: 'gold_multi', value: 0.35 },
+            { id: 'gold_coin', rarity: 'R', name: '金貨', icon: '🪙', effect: 'gold_multi', value: 0.40 },
+            { id: 'gold_bar', rarity: 'R', name: '金の延べ棒', icon: '🧱', effect: 'gold_multi', value: 0.45 },
+            { id: 'merchant_wallet', rarity: 'R', name: '商人の財布', icon: '💰', effect: 'gold_multi', value: 0.50 },
+            { id: 'pearl_necklace', rarity: 'R', name: '真珠のネックレス', icon: '📿', effect: 'gold_multi', value: 0.50 },
+            { id: 'treasure_map', rarity: 'HR', name: '宝の地図', icon: '🗺️', effect: 'gold_multi', value: 0.60 },
+            { id: 'golden_cup', rarity: 'HR', name: '黄金の杯', icon: '🏆', effect: 'gold_multi', value: 0.65 },
+            { id: 'kings_crown', rarity: 'HR', name: '王の冠', icon: '👑', effect: 'gold_multi', value: 0.70 },
+            { id: 'platinum_ring', rarity: 'HR', name: 'プラチナリング', icon: '💍', effect: 'gold_multi', value: 0.75 },
+            { id: 'ruby_eyes', rarity: 'HR', name: 'ルビーの瞳', icon: '👁️', effect: 'gold_multi', value: 0.75 },
+            { id: 'infinite_ring', rarity: 'SR', name: '巨富の指輪', icon: '💍', effect: 'gold_multi', value: 0.85 },
+            { id: 'eldorado_key', rarity: 'SR', name: '黄金郷の鍵', icon: '🔑', effect: 'gold_multi', value: 0.90 },
+            { id: 'alchemy_book', rarity: 'SR', name: '錬金術の書', icon: '📖', effect: 'gold_multi', value: 0.95 },
+            { id: 'treasure_chest', rarity: 'SR', name: '財宝の箱', icon: '🎁', effect: 'gold_multi', value: 1.00 },
+            { id: 'sun_stone', rarity: 'SR', name: '太陽の石', icon: '☀️', effect: 'gold_multi', value: 1.00 },
+            { id: 'horn_plenty', rarity: 'L', name: '豊穣の角', icon: '🐚', effect: 'gold_multi', value: 3.00, special: 'lucky_drop' },
+            { id: 'midas_hand', rarity: 'L', name: 'ミダス王の手', icon: '✋', effect: 'gold_multi', value: 4.00, special: 'extra_coin' },
+            { id: 'magic_hammer', rarity: 'L', name: '打ち出の小槌', icon: '🔨', effect: 'gold_multi', value: 3.50, special: 'pain_coin' },
+            { id: 'mammon_coin', rarity: 'L', name: 'マモンの金貨', icon: '🪙', effect: 'gold_multi', value: 5.00, special: 'greed_aura' },
+            { id: 'dragon_scale_gold', rarity: 'L', name: '黄金竜の逆鱗', icon: '🐉', effect: 'gold_multi', value: 4.50, special: 'boss_rich' },
+
+            // --- [スピード系：攻撃速度アップ] ---
+            { id: 'light_gloves', rarity: 'N', name: '軽い手袋', icon: '🧤', effect: 'atk_multi', value: 0.10 },
+            { id: 'wind_feather', rarity: 'N', name: '風の羽飾り', icon: '🪶', effect: 'atk_multi', value: 0.15 },
+            { id: 'old_clock', rarity: 'N', name: '古い時計', icon: '⏰', effect: 'atk_multi', value: 0.15 },
+            { id: 'flexible_whip', rarity: 'N', name: 'しなやかな鞭', icon: '🦯', effect: 'atk_multi', value: 0.20 },
+            { id: 'agility_ring', rarity: 'N', name: '俊敏のリング', icon: '💍', effect: 'atk_multi', value: 0.25 },
+            { id: 'thief_bandana', rarity: 'R', name: '盗賊のバンダナ', icon: '🧣', effect: 'atk_multi', value: 0.35 },
+            { id: 'ninja_band', rarity: 'R', name: '忍者の鉢巻き', icon: '🥋', effect: 'atk_multi', value: 0.40 },
+            { id: 'wind_talisman', rarity: 'R', name: '風の護符', icon: '🧿', effect: 'atk_multi', value: 0.45 },
+            { id: 'speed_ring', rarity: 'R', name: 'スピードリング', icon: '💍', effect: 'atk_multi', value: 0.50 },
+            { id: 'acrobat_cloak', rarity: 'R', name: '軽業師の外套', icon: '🧥', effect: 'atk_multi', value: 0.50 },
+            { id: 'gale_boots', rarity: 'HR', name: '疾風のブーツ', icon: '🥾', effect: 'atk_multi', value: 0.60 },
+            { id: 'lightning_ring', rarity: 'HR', name: '雷光の指輪', icon: '⚡', effect: 'atk_multi', value: 0.65 },
+            { id: 'phantom_cloak', rarity: 'HR', name: '幻影の外套', icon: '🧥', effect: 'atk_multi', value: 0.70 },
+            { id: 'fairy_wing', rarity: 'HR', name: '妖精の羽', icon: '🧚', effect: 'atk_multi', value: 0.75 },
+            { id: 'sand_clock', rarity: 'HR', name: '時の砂時計', icon: '⏳', effect: 'atk_multi', value: 0.75 },
+            { id: 'sonic_shoes', rarity: 'SR', name: '音速の靴', icon: '👟', effect: 'atk_multi', value: 0.85 },
+            { id: 'god_speed_ring', rarity: 'SR', name: '神速の指輪', icon: '💍', effect: 'atk_multi', value: 0.90 },
+            { id: 'swallow_robe', rarity: 'SR', name: '飛燕の羽衣', icon: '👘', effect: 'atk_multi', value: 0.95 },
+            { id: 'time_leap', rarity: 'SR', name: '時間跳躍の時計', icon: '🕰️', effect: 'atk_multi', value: 1.00 },
+            { id: 'star_talisman', rarity: 'SR', name: '星流の護符', icon: '💫', effect: 'atk_multi', value: 1.00 },
+            { id: 'pegasus_boots', rarity: 'L', name: '天馬の靴', icon: '👢', effect: 'atk_multi', value: 3.00, special: 'evasion_up' },
+            { id: 'raijin_drum', rarity: 'L', name: '雷神の太鼓', icon: '🥁', effect: 'atk_multi', value: 4.00, special: 'double_tap' },
+            { id: 'chronos_clock', rarity: 'L', name: 'クロノスの時計', icon: '🕙', effect: 'atk_multi', value: 3.50, special: 'time_stop' },
+            { id: 'fuujin_bag', rarity: 'L', name: '風神の袋', icon: '🥡', effect: 'atk_multi', value: 5.00, special: 'no_delay' },
+            { id: 'light_wing', rarity: 'L', name: '光速の翼', icon: '👼', effect: 'atk_multi', value: 4.50, special: 'instant_action' },
+
+            // --- 既存の特殊神器 (互換性のため維持) ---
             { id: 'gungnir', rarity: 'L', name: '神槍グングニル', icon: '🔱', effect: 'atk_add', value: 10.0 },
             { id: 'dainsleif', rarity: 'L', name: '魔剣ダインスレイヴ', icon: '👿', effect: 'atk_add', value: 5.0, special: 'divine_shred' },
             { id: 'death_scythe', rarity: 'L', name: '死鎌デスサイズ', icon: '💀', effect: 'none', value: 0, special: 'instant_kill' },
-            { id: 'legend_sword', rarity: 'SR', name: '伝説の剣', icon: '⚔️', effect: 'atk_add', value: 1.0 },
-            { id: 'sage_stone', rarity: 'SR', name: '賢者の石', icon: '💎', effect: 'gold_multi', value: 1.0 },
-            { id: 'tyrant_shield', rarity: 'SR', name: '覇王の盾', icon: '🛡️', effect: 'hp_multi', value: 1.0 },
-            { id: 'mithril_sword', rarity: 'HR', name: 'ミスリルの剣', icon: '🗡️', effect: 'atk_add', value: 0.75 },
-            { id: 'diamond', rarity: 'HR', name: 'ダイヤモンド', icon: '💠', effect: 'gold_multi', value: 0.75 },
-            { id: 'hero_shield', rarity: 'HR', name: '勇者の盾', icon: '🔰', effect: 'hp_multi', value: 0.75 },
-            { id: 'haste_boots', rarity: 'HR', name: '韋駄天の靴', icon: '👟', effect: 'atk_multi', value: 0.75 },
-            { id: 'crystal', rarity: 'R', name: 'クリスタル', icon: '🔮', effect: 'gold_multi', value: 0.5 },
-            { id: 'iron_shield_r', rarity: 'R', name: '鉄の盾', icon: '🛡️', effect: 'hp_multi', value: 0.5 },
-            { id: 'sport_shoes', rarity: 'R', name: 'スポーツシューズ', icon: '👟', effect: 'atk_multi', value: 0.5 },
-            { id: 'gold_sword_r', rarity: 'R', name: '黄金の剣', icon: '✨', effect: 'atk_add', value: 0.5 },
-            { id: 'iron_sword', rarity: 'N', name: '鉄の剣', icon: '⚔️', effect: 'atk_add', value: 0.25 },
-            { id: 'medal', rarity: 'N', name: 'メダル', icon: '🏅', effect: 'gold_multi', value: 0.25 },
-            { id: 'shoes', rarity: 'N', name: '靴', icon: '👞', effect: 'atk_multi', value: 0.25 },
-            { id: 'shield_n', rarity: 'N', name: '盾', icon: '🛡️', effect: 'hp_multi', value: 0.25 }
         ];
 
         const GACHA_ITEMS = [
@@ -633,6 +927,7 @@
         const ENEMY_ICONS = ['👹', '💀', '👻', '🧟', '🐺', '🦂', '🕷️'];
 
         // --- ユーティリティ ---
+        // 数値をK, M, Bなどの単位付き形式に変換する
         function formatNumber(num) {
             if (num < 1000) return Math.floor(num).toString();
             const suffixes = ["", "K", "M", "B", "T", "P", "E", "Z"];
@@ -642,6 +937,7 @@
         }
 
         // --- マネージャー ---
+        // アーティファクト（恒久強化）を管理するクラス
         class ArtifactManager {
             constructor() { this.owned = {}; }
             draw(count) {
@@ -654,7 +950,14 @@
                         cumulative += meta.chance;
                         if (r <= cumulative) { selectedRarity = key; break; }
                     }
-                    const pool = ARTIFACT_DATA.filter(a => a.rarity === selectedRarity);
+
+                    // Box Gacha Logic: Filter out items that are at a reasonable 'max' (e.g. 1000 for N, 500 for R, etc.)
+                    // Here we'll treat 1000 as a soft cap for the gacha listing.
+                    const pool = ARTIFACT_DATA.filter(a => a.rarity === selectedRarity && (this.owned[a.id] || 0) < 1000);
+                    if (pool.length === 0) {
+                        // If pool empty, try a lower rarity or just skip
+                        continue;
+                    }
                     const picked = pool[Math.floor(Math.random() * pool.length)];
                     this.owned[picked.id] = (this.owned[picked.id] || 0) + 1;
                     results.push(picked);
@@ -662,13 +965,25 @@
                 return results;
             }
             getBonuses(stage) {
-                let stats = { atkAdd: 0, atkMulti: 1.0, goldMulti: 1.0, hpMulti: 1.0, instantKill: 0 };
+                let stats = {
+                    atkAdd: 0, atkMulti: 1.0, goldMulti: 1.0, hpMulti: 1.0, instantKill: 0,
+                    regen: 0, reflect: 0, critRate: 0, bossCoin: 1.0, evade: 0, doubleTap: 0
+                };
                 for (const [id, lv] of Object.entries(this.owned)) {
                     const data = ARTIFACT_DATA.find(a => a.id === id);
                     if (!data) continue;
                     let val = data.value * lv;
+
+                    // Special Logic for Legend Items
                     if (data.special === 'divine_shred') val *= (1 + (stage * 0.02));
-                    if (data.special === 'instant_kill') stats.instantKill += 0.05; // 5% per level
+                    if (data.special === 'instant_kill') stats.instantKill += 0.05 * lv;
+                    if (data.special === 'holy_regen') stats.regen += 0.01 * lv; // 1% HP per sec
+                    if (data.special === 'curse_atk') stats.hpMulti *= Math.pow(0.9, lv); // -10% HP per lv
+                    if (data.special === 'crit_up') stats.critRate += 0.10 * lv;
+                    if (data.special === 'reflect_dmg') stats.reflect += 0.10 * lv;
+                    if (data.special === 'boss_rich') stats.bossCoin += 1.0 * lv;
+                    if (data.special === 'evasion_up') stats.evade += 0.10 * lv;
+                    if (data.special === 'double_tap') stats.doubleTap += 0.15 * lv;
 
                     if (data.effect === 'atk_add') stats.atkAdd += val;
                     else if (data.effect === 'atk_multi') stats.atkMulti += val;
@@ -684,16 +999,19 @@
             pull() {
                 const r = Math.random();
                 let cumulative = 0;
-                for (const item of GACHA_ITEMS) {
+                // Box Gacha: Filter out items reached max
+                const validItems = GACHA_ITEMS.filter(item => (this.owned[item.id] || 0) < item.max);
+                if (validItems.length === 0) return null;
+
+                for (const item of validItems) {
                     cumulative += item.chance;
                     if (r <= cumulative) {
-                        if ((this.owned[item.id] || 0) < item.max) {
-                            this.owned[item.id] = (this.owned[item.id] || 0) + 1;
-                            return item;
-                        }
+                        this.owned[item.id] = (this.owned[item.id] || 0) + 1;
+                        return item;
                     }
                 }
-                return null;
+                // Fallback to random valid item if cumulative failed
+                return validItems[Math.floor(Math.random() * validItems.length)];
             }
             getBonuses() {
                 let b = { goldStack: 0, tripleGold: 0, doubleReward: 0, costCut: 1.0, extraAttack: 0, initialLv: 0 };
@@ -718,6 +1036,12 @@
                 this.artMgr = new ArtifactManager();
                 this.gachaMgr = new GachaManager();
                 this.buyMode = 1; // 1, 10, -1(MAX)
+                this.totalKills = 0;
+                this.missions = [
+                    { id: 'kill_100', text: '敵を100体討伐', target: 100, reward: 50, done: false },
+                    { id: 'kill_500', text: '敵を500体討伐', target: 500, reward: 200, done: false },
+                    { id: 'kill_2000', text: '敵を2000体討伐', target: 2000, reward: 1000, done: false }
+                ];
             }
             getUnitCost(id, count = 1) {
                 const type = UNIT_TYPES.find(u => u.id === id);
@@ -741,6 +1065,7 @@
             }
             getStats() {
                 let baseAtk = 0;
+                // ROI Improvement: Base attack scales slightly better with total level
                 UNIT_TYPES.forEach(t => baseAtk += t.baseAtk * this.units[t.id]);
                 if (baseAtk === 0) baseAtk = 5;
 
@@ -748,31 +1073,47 @@
                 const g = this.gachaMgr.getBonuses();
                 const orbBonus = 1 + (this.orbs * 0.1);
 
-                let dps = (baseAtk * (1 + a.atkAdd) * a.atkMulti) * orbBonus;
+                let dps = (baseAtk * (1.5 + a.atkAdd) * a.atkMulti) * orbBonus; // 1.0 -> 1.5 base multi for better scaling
                 return {
                     dps,
-                    extraAttack: g.extraAttack,
+                    extraAttack: g.extraAttack + a.doubleTap,
                     goldMulti: a.goldMulti * (1 + g.goldStack),
                     hpMulti: a.hpMulti,
                     instantKill: a.instantKill,
                     tripleGold: g.tripleGold,
-                    doubleReward: g.doubleReward
+                    doubleReward: g.doubleReward,
+                    regen: a.regen,
+                    reflect: a.reflect,
+                    critRate: a.critRate,
+                    evade: a.evade,
+                    bossCoin: a.bossCoin
                 };
+            }
+            checkMissions() {
+                this.missions.forEach(m => {
+                    if (!m.done && this.totalKills >= m.target) {
+                        m.done = true;
+                        this.orbs += m.reward;
+                        alert(`実績達成: ${m.text}\n報酬: ${m.reward} Orbs 獲得！`);
+                    }
+                });
             }
             save() {
                 const data = {
                     s: this.stage, g: this.gold, o: this.orbs, u: this.units,
-                    a: this.artMgr.owned, ga: this.gachaMgr.owned
+                    a: this.artMgr.owned, ga: this.gachaMgr.owned, tk: this.totalKills, md: this.missions.map(m => m.done)
                 };
-                localStorage.setItem('RPG_SAVE_PRO', JSON.stringify(data));
+                localStorage.setItem('RPG_SAVE_PRO_V2', JSON.stringify(data));
             }
             load() {
-                const raw = localStorage.getItem('RPG_SAVE_PRO');
+                const raw = localStorage.getItem('RPG_SAVE_PRO_V2');
                 if (raw) {
                     const d = JSON.parse(raw);
                     this.stage = d.s || 1; this.gold = d.g || 0; this.orbs = d.o || 0;
                     this.units = d.u || this.units;
                     this.artMgr.owned = d.a || {}; this.gachaMgr.owned = d.ga || {};
+                    this.totalKills = d.tk || 0;
+                    if (d.md) this.missions.forEach((m, i) => m.done = d.md[i]);
                 }
             }
         }
@@ -805,7 +1146,10 @@
                 card.className = 'item-card';
                 card.style.display = game.stage >= type.unlockAt ? 'flex' : 'none';
                 card.innerHTML = `
-                    <div class="item-icon">${type.icon}</div>
+                    <div class="item-icon-wrapper">
+                        <div class="item-icon">${type.icon}</div>
+                        <div class="unit-label">${type.name}</div>
+                    </div>
                     <div class="item-info">
                         <span class="item-name">${type.name} (Lv <span id="lv-${type.id}">0</span>)</span>
                         <span class="item-desc">Atk: ${formatNumber(type.baseAtk)} / Cost: <span id="cost-${type.id}">0</span></span>
@@ -813,6 +1157,16 @@
                     <button class="buy-btn" id="btn-${type.id}" onclick="buyUnit('${type.id}')">雇用</button>
                 `;
                 list.appendChild(card);
+            });
+
+            // Initial Mission List
+            const mList = document.getElementById('mission-list');
+            mList.innerHTML = '';
+            game.missions.forEach(m => {
+                const el = document.createElement('div');
+                el.id = `mission-${m.id}`;
+                el.className = 'mission-item';
+                mList.appendChild(el);
             });
 
             const artGrid = document.getElementById('artifact-list');
@@ -863,7 +1217,13 @@
                 const data = GACHA_ITEMS.find(i => i.id === id);
                 const el = document.createElement('div');
                 el.className = 'gacha-item';
-                el.innerHTML = `<span>${data.icon}</span> <span>x${count}</span>`;
+                el.innerHTML = `
+                    <div style="font-size:1.5rem;">${data.icon}</div>
+                    <div style="display:flex; flex-direction:column; text-align:left;">
+                        <div style="font-weight:bold;">${data.name} x${count}</div>
+                        <div style="font-size:0.7rem; color:var(--text-dim);">${data.desc}</div>
+                    </div>
+                `;
                 list.appendChild(el);
             }
         }
@@ -894,6 +1254,15 @@
                 if (game.artMgr.owned[art.id] > 0) el.classList.add('owned');
             });
 
+            // Missions
+            game.missions.forEach(m => {
+                const el = document.getElementById(`mission-${m.id}`);
+                if (el) {
+                    el.innerHTML = `<span>${m.text} (${Math.min(game.totalKills, m.target)}/${m.target})</span>
+                                   <span style="color:${m.done ? 'var(--success)' : 'var(--text-dim)'}">${m.done ? '達成' : m.reward + 'O'}</span>`;
+                }
+            });
+
             const pending = Math.floor(game.stage / 10);
             document.getElementById('pending-orbs').textContent = pending;
             document.getElementById('return-btn').disabled = game.stage < 10;
@@ -901,13 +1270,26 @@
             document.getElementById('ally-hp-bar').style.width = (battle.allyHp / battle.allyMaxHp * 100) + '%';
         }
 
-        // --- ロジック ---
+        // --- ROI ロジック ---
+        function createAtkUpPop() {
+            const btn = event.currentTarget;
+            const rect = btn.getBoundingClientRect();
+            const pop = document.createElement('div');
+            pop.className = 'atk-up-pop';
+            pop.textContent = '攻撃力UP!';
+            pop.style.left = (rect.left + rect.width / 2) + 'px';
+            pop.style.top = rect.top + 'px';
+            document.body.appendChild(pop);
+            setTimeout(() => pop.remove(), 600);
+        }
+
         function buyUnit(id) {
             let bCount = game.buyMode === -1 ? game.getMaxBuy(id) : game.buyMode;
             if (bCount < 1) return;
             const cost = game.getUnitCost(id, bCount);
             if (game.gold >= cost) {
                 game.gold -= cost; game.units[id] += bCount;
+                createAtkUpPop();
                 updateUI(); game.save();
             }
         }
@@ -923,13 +1305,13 @@
         }
 
         function createPop(val, isGold = false) {
-            const screen = document.querySelector('.battle-screen');
+            const screen = document.getElementById('battle-screen');
             const el = document.createElement('div');
             el.className = 'damage-popup';
             el.textContent = isGold ? `+${formatNumber(val)}G` : `-${formatNumber(val)}`;
             el.style.color = isGold ? 'var(--gold)' : 'var(--danger)';
-            el.style.left = `calc(50% + ${(Math.random() * 60 - 30)}px)`;
-            el.style.top = `40%`;
+            el.style.left = `calc(50% + ${(Math.random() * 80 - 40)}px)`;
+            el.style.top = `45%`;
             screen.appendChild(el);
             setTimeout(() => el.remove(), 800);
         }
@@ -937,14 +1319,33 @@
         function spawnEnemy() {
             game.stage++;
             battle.isBoss = (game.stage % 10 === 0);
-            let hp = 50 * Math.pow(1.25, game.stage - 1);
+
+            // バランス調整：Stage 150以降の曲線を大幅に緩和
+            let baseScaling = game.stage < 150 ? 1.25 : 1.12;
+            let hp = 50 * Math.pow(baseScaling, game.stage - 1);
+            if (game.stage >= 150) {
+                // Adjust to connect smoothly
+                hp = 50 * Math.pow(1.25, 149) * Math.pow(1.12, game.stage - 150);
+            }
+
             if (battle.isBoss) hp *= 10;
+
+            // レア敵（ラッシュタイム）
+            const isRare = !battle.isBoss && Math.random() < 0.05; // 5% chance
+            if (isRare) hp *= 0.5; // Rare enemies are easier but drop more
+
             battle.enemyMaxHp = Math.floor(hp);
             battle.enemyHp = battle.enemyMaxHp;
-            document.getElementById('enemy-avatar').textContent = battle.isBoss ? '🐉' : ENEMY_ICONS[Math.floor(Math.random() * ENEMY_ICONS.length)];
+            battle.isRare = isRare;
+
+            document.getElementById('enemy-avatar').textContent = isRare ? '💰' : (battle.isBoss ? '🐉' : ENEMY_ICONS[Math.floor(Math.random() * ENEMY_ICONS.length)]);
+            if (isRare) document.getElementById('enemy-avatar').style.filter = 'drop-shadow(0 0 10px gold)';
+            else document.getElementById('enemy-avatar').style.filter = '';
         }
 
         function handleReturn() {
+            if (!confirm("本当に帰還しますか？ 現在のゴールドとステージ進行度はリセットされます。")) return;
+
             const orbs = Math.floor(game.stage / 10);
             document.getElementById('res-stage').textContent = game.stage;
             document.getElementById('res-orbs').textContent = orbs;
@@ -965,6 +1366,9 @@
             battle.enemyHp = 50; battle.enemyMaxHp = 50; battle.isBoss = false;
         }
 
+        function openHelp() { document.getElementById('help-modal').style.display = 'flex'; }
+        function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
+
         function closeResult() {
             document.getElementById('result-overlay').style.display = 'none';
             initUI(); updateUI(); game.save();
@@ -978,7 +1382,12 @@
             const s = game.getStats();
             battle.allyMaxHp = 200 * s.hpMulti;
 
-            // 即死
+            // HP再生（レジェンド効果など）
+            if (battle.allyHp < battle.allyMaxHp) {
+                battle.allyHp += (battle.allyMaxHp * s.regen) * dt;
+            }
+
+            // 即死（低確率で敵を葬る）
             if (!battle.isBoss && Math.random() < s.instantKill * dt) {
                 battle.enemyHp = 0;
                 document.getElementById('enemy-entity').classList.add('death-flash');
@@ -986,14 +1395,32 @@
             }
 
             let dps = s.dps;
+            // 連続攻撃判定
             if (Math.random() < s.extraAttack) dps *= 2;
+
+            // クリティカル判定（視覚演出付き）
+            if (Math.random() < s.critRate) {
+                dps *= 3;
+                if (now % 600 < 35) createAtkUpPop();
+            }
+
             battle.enemyHp -= dps * dt;
 
-            if (now % 600 < 35) { createPop(dps / 2); document.getElementById('enemy-entity').classList.add('hit-flash'); setTimeout(() => document.getElementById('enemy-entity').classList.remove('hit-flash'), 150); }
+            // ヒット演出とダメージポップアップ
+            if (now % 600 < 35) {
+                createPop(dps / 2);
+                document.getElementById('enemy-entity').classList.add('hit-flash');
+                setTimeout(() => document.getElementById('enemy-entity').classList.remove('hit-flash'), 150);
+            }
 
+            // 敵討伐時の処理
             if (battle.enemyHp <= 0) {
+                game.totalKills++;
+                game.checkMissions(); // 実績チェック
+
                 let g = 10 * Math.pow(1.2, game.stage - 1) * s.goldMulti;
-                if (battle.isBoss) g *= 5;
+                if (battle.isBoss) g *= (5 * s.bossCoin);
+                if (battle.isRare) g *= 20; // レア敵ボーナス
                 if (Math.random() < s.tripleGold) g *= 3;
                 if (Math.random() < s.doubleReward) g *= 2;
                 game.gold += g;
@@ -1001,12 +1428,28 @@
                 spawnEnemy();
             }
 
-            battle.allyHp -= (2 + game.stage * 1.5) * dt;
+            // 被ダメージ計算と回避、反射
+            let dmg = (2 + game.stage * 1.5) * dt;
+            if (Math.random() >= s.evade) {
+                battle.allyHp -= dmg;
+                if (s.reflect > 0) battle.enemyHp -= (dmg * s.reflect * 10);
+            }
+
+            // 全滅時のペナルティ（ステージダウン）
             if (battle.allyHp <= 0) {
+                const overlay = document.getElementById('stage-down-overlay');
+                const screen = document.getElementById('battle-screen');
+                overlay.style.display = 'flex';
+                screen.classList.add('edge-flash-red');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    screen.classList.remove('edge-flash-red');
+                }, 1500);
+
                 game.stage = Math.max(1, game.stage - 1);
                 battle.isBoss = (game.stage % 10 === 0);
-                battle.enemyMaxHp = Math.floor(50 * Math.pow(1.25, game.stage - 1)) * (battle.isBoss ? 10 : 1);
-                battle.enemyHp = battle.enemyMaxHp;
+                spawnEnemy(); // 現在または1つ前のステージで再生成
+                game.stage--; // spawnEnemyで加算される分の調整
                 battle.allyHp = battle.allyMaxHp;
             }
 
