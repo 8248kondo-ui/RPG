@@ -1271,14 +1271,16 @@
         }
 
         // --- ROI ロジック ---
-        function createAtkUpPop() {
-            const btn = event.currentTarget;
+        // ROI演出: ボタン位置に「攻撃力UP!」を表示
+        function createAtkUpPop(targetEl) {
+            const btn = targetEl;
+            if (!btn) return;
             const rect = btn.getBoundingClientRect();
             const pop = document.createElement('div');
             pop.className = 'atk-up-pop';
             pop.textContent = '攻撃力UP!';
             pop.style.left = (rect.left + rect.width / 2) + 'px';
-            pop.style.top = rect.top + 'px';
+            pop.style.top = (rect.top + window.scrollY) + 'px';
             document.body.appendChild(pop);
             setTimeout(() => pop.remove(), 600);
         }
@@ -1289,7 +1291,9 @@
             const cost = game.getUnitCost(id, bCount);
             if (game.gold >= cost) {
                 game.gold -= cost; game.units[id] += bCount;
-                createAtkUpPop();
+                if (typeof event !== 'undefined' && event.currentTarget) {
+                    createAtkUpPop(event.currentTarget);
+                }
                 updateUI(); game.save();
             }
         }
@@ -1304,12 +1308,25 @@
             } else alert(`オーブが足りません！`);
         }
 
-        function createPop(val, isGold = false) {
+        function createPop(val, isGold = false, isCrit = false) {
             const screen = document.getElementById('battle-screen');
             const el = document.createElement('div');
             el.className = 'damage-popup';
-            el.textContent = isGold ? `+${formatNumber(val)}G` : `-${formatNumber(val)}`;
-            el.style.color = isGold ? 'var(--gold)' : 'var(--danger)';
+
+            if (typeof val === 'string') {
+                el.textContent = val;
+            } else {
+                el.textContent = isGold ? `+${formatNumber(val)}G` : `-${formatNumber(val)}`;
+            }
+
+            if (isCrit) {
+                el.style.color = '#ffeb3b';
+                el.style.fontSize = '1.8rem';
+                el.style.zIndex = '150';
+            } else {
+                el.style.color = isGold ? 'var(--gold)' : 'var(--danger)';
+            }
+
             el.style.left = `calc(50% + ${(Math.random() * 80 - 40)}px)`;
             el.style.top = `45%`;
             screen.appendChild(el);
@@ -1399,16 +1416,18 @@
             if (Math.random() < s.extraAttack) dps *= 2;
 
             // クリティカル判定（視覚演出付き）
+            let isCrit = false;
             if (Math.random() < s.critRate) {
                 dps *= 3;
-                if (now % 600 < 35) createAtkUpPop();
+                isCrit = true;
             }
 
             battle.enemyHp -= dps * dt;
 
             // ヒット演出とダメージポップアップ
             if (now % 600 < 35) {
-                createPop(dps / 2);
+                const popVal = isCrit ? `CRITICAL! ${formatNumber(dps / 2)}` : formatNumber(dps / 2);
+                createPop(popVal, false, isCrit);
                 document.getElementById('enemy-entity').classList.add('hit-flash');
                 setTimeout(() => document.getElementById('enemy-entity').classList.remove('hit-flash'), 150);
             }
