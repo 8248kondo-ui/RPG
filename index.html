@@ -1119,7 +1119,7 @@
             { id: 'titan_blood', rarity: 'SR', name: '巨人の血', icon: '🍷', desc: '最大HP +15% / 個', max: 10, effect: 'hp_stack_heavy', chance: 0.04 },
             { id: 'berserk_mask', rarity: 'HR', name: '狂戦士の仮面', icon: '👺', desc: '攻撃特化 +8% / 個', max: 20, effect: 'atk_stack', chance: 0.05 },
             { id: 'mirror_armor', rarity: 'SR', name: '鏡の鎧', icon: '🥋', desc: '魔法反射 +10% / 個', max: 10, effect: 'reflect_stack', chance: 0.03 },
-            { id: 'wind_step', rarity: 'R', name: '疾風の歩法', icon: '�', desc: '速さ補正 +3% / 個', max: 30, effect: 'speed_stack', chance: 0.08 },
+            { id: 'wind_step', rarity: 'R', name: '疾風の歩法', icon: '👟', desc: '速さ補正 +3% / 個', max: 30, effect: 'speed_stack', chance: 0.08 },
             { id: 'iron_wall', rarity: 'N', name: '鉄壁の誓い', icon: '🧱', desc: 'HP +2% / 個', max: 100, effect: 'hp_stack_lite', chance: 0.18 },
             { id: 'hero_scarf', rarity: 'HR', name: '勇者のスカーフ', icon: '🧣', desc: 'DPS +4% / 個', max: 40, effect: 'atk_stack', chance: 0.07 },
             { id: 'blessed_water', rarity: 'SR', name: '聖水', icon: '🍶', desc: 'デバフ耐性 +10% / 個', max: 5, effect: 'none', chance: 0.02 },
@@ -1147,7 +1147,7 @@
             { id: 'rebirth_ash', rarity: 'HR', name: '転生の灰', icon: '⚱️', desc: '帰還初期レベル +2 / 個', max: 50, effect: 'init_lv_stack', chance: 0.08 },
             { id: 'warp_engine', rarity: 'SR', name: 'ワープエンジン', icon: '🚀', desc: 'ボススキップ率 +1% / 個', max: 10, effect: 'skip_boss', chance: 0.03 },
             { id: 'broken_clock', rarity: 'N', name: '壊れた時計', icon: '🕒', desc: '全体速度 +0.5% / 個', max: 100, effect: 'speed_lite', chance: 0.20 },
-            { id: 'orb_magnet', rarity: 'HR', name: 'オーブ磁石', icon: '�', desc: 'オーブ獲得 +2% / 個', max: 50, effect: 'orb_stack', chance: 0.07 },
+            { id: 'orb_magnet', rarity: 'HR', name: 'オーブ磁石', icon: '🧲', desc: 'オーブ獲得 +2% / 個', max: 50, effect: 'orb_stack', chance: 0.07 },
             { id: 'karma_beads', rarity: 'SR', name: '業の数珠', icon: '📿', desc: 'オーブ倍率 +10% / 個', max: 15, effect: 'orb_stack', chance: 0.04 },
             { id: 'phoenix_feather', rarity: 'L', name: '不死鳥の羽', icon: '🪶', desc: '全滅時ステージ保持 10% / 個', max: 5, effect: 'keep_stage', chance: 0.01 },
             { id: 'exp_gear', rarity: 'N', name: '経験の歯車', icon: '⚙️', desc: '全体速度 +1% / 個', max: 50, effect: 'speed_lite', chance: 0.15 },
@@ -1339,16 +1339,19 @@
             getStats() {
                 try {
                     let baseAtk = 0;
-                    UNIT_TYPES.forEach(t => baseAtk += (t.baseAtk * 1.5) * this.units[t.id]);
-                    if (baseAtk === 0) baseAtk = 10;
+                    UNIT_TYPES.forEach(t => {
+                        const lv = this.units[t.id] || 0;
+                        baseAtk += (t.baseAtk * 1.5) * lv;
+                    });
+                    if (baseAtk === 0 || isNaN(baseAtk)) baseAtk = 10;
 
                     const a = this.artMgr.getBonuses(this.stage);
                     const g = this.gachaMgr.getBonuses();
                     const orbBonus = (1 + (this.orbs * 0.1)) * g.orbStack;
 
-                    // ガチャバフを含めたDPS計算
                     let dps = (baseAtk * (2.0 + a.atkAdd) * a.atkMulti * g.atkStack) * orbBonus;
                     if (battle.isBoss) dps *= g.bossAtk;
+                    if (isNaN(dps)) dps = 10;
 
                     return {
                         dps,
@@ -1366,7 +1369,7 @@
                     };
                 } catch (e) {
                     console.error("Stats calculation error:", e);
-                    return { dps: 5, goldMulti: 1, hpMulti: 1 };
+                    return { dps: 10, goldMulti: 1, hpMulti: 1 };
                 }
             }
             checkMissions() {
@@ -1386,14 +1389,40 @@
                 localStorage.setItem('RPG_SAVE_PRO_V2', JSON.stringify(data));
             }
             load() {
-                const raw = localStorage.getItem('RPG_SAVE_PRO_V2');
-                if (raw) {
-                    const d = JSON.parse(raw);
-                    this.stage = d.s || 1; this.gold = d.g || 0; this.orbs = d.o || 0;
-                    this.units = d.u || this.units;
-                    this.artMgr.owned = d.a || {}; this.gachaMgr.owned = d.ga || {};
-                    this.totalKills = d.tk || 0;
-                    if (d.md) this.missions.forEach((m, i) => m.done = d.md[i]);
+                try {
+                    const raw = localStorage.getItem('RPG_SAVE_PRO_V2');
+                    if (raw) {
+                        const d = JSON.parse(raw);
+                        this.stage = d.s || 1;
+                        this.gold = d.g || 0;
+                        this.orbs = d.o || 0;
+                        this.totalKills = d.tk || 0;
+
+                        // ユニットレベルの統合（新ユニット対応）
+                        if (d.u) {
+                            Object.keys(d.u).forEach(id => {
+                                if (this.units.hasOwnProperty(id)) this.units[id] = d.u[id];
+                            });
+                        }
+
+                        // アーティファクトの読み込み（存在しないものは除外）
+                        if (d.a) {
+                            Object.keys(d.a).forEach(id => {
+                                if (ARTIFACT_DATA.find(i => i.id === id)) this.artMgr.owned[id] = d.a[id];
+                            });
+                        }
+
+                        // ガチャアイテムの読み込み（存在しないものは除外）
+                        if (d.ga) {
+                            Object.keys(d.ga).forEach(id => {
+                                if (GACHA_ITEMS.find(i => i.id === id)) this.gachaMgr.owned[id] = d.ga[id];
+                            });
+                        }
+
+                        if (d.md) this.missions.forEach((m, i) => m.done = d.md[i]);
+                    }
+                } catch (e) {
+                    console.error("Save load error:", e);
                 }
             }
         }
@@ -1529,6 +1558,8 @@
             for (const [id, count] of Object.entries(game.gachaMgr.owned)) {
                 if (count <= 0) continue;
                 const data = GACHA_ITEMS.find(i => i.id === id);
+                if (!data) continue; // 旧データ（削除されたアイテム）はスキップ
+
                 const el = document.createElement('div');
                 el.className = 'gacha-item';
                 el.innerHTML = `
