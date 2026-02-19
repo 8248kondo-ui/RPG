@@ -1446,6 +1446,14 @@
             updateUI();
         }
 
+        function setSpeed(val) {
+            game.gameSpeed = val;
+            document.querySelectorAll('.speed-btn').forEach(btn => btn.classList.remove('active'));
+            if (val === 1) document.querySelector('.speed-controls button:nth-child(1)').classList.add('active');
+            if (val === 2) document.getElementById('speed-x2').classList.add('active');
+            if (val === 3) document.getElementById('speed-x3').classList.add('active');
+        }
+
         function initUI() {
             const list = document.getElementById('unit-list');
             list.innerHTML = '';
