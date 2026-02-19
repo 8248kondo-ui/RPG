@@ -1823,14 +1823,26 @@
 
                 // 全滅時のペナルティ（ステージダウン）
                 if (battle.allyHp <= 0) {
-                    game.stage = Math.max(1, game.stage - 1);
-                    battle.isBoss = false; // ボス判定のリセット（Critical Bugfix）
+                    const screen = document.getElementById('battle-screen');
+                    const crack = document.getElementById('stage-down-crack');
 
-                    spawnEnemy();
-                    game.stage--;
+                    // 演出：画面が波打ち、ヒビが入る
+                    screen.classList.add('shake-screen');
+                    crack.style.display = 'block';
+                    crack.style.opacity = '1';
+
+                    setTimeout(() => {
+                        screen.classList.remove('shake-screen');
+                        crack.style.opacity = '0';
+                        setTimeout(() => crack.style.display = 'none', 300);
+                    }, 1000);
+
+                    // ステージダウンの確実な反映：
+                    // spawnEnemyは実行時にstageを+1するため、2つ戻してから呼ぶことで実質1つ戻る
+                    game.stage = Math.max(0, game.stage - 2);
+                    spawnEnemy(); // ここで新たな敵（雑魚）が生成され、isBossも再計算される
+
                     battle.allyHp = battle.allyMaxHp;
-
-                    // 視覚演出はStep 2で実装
                 }
 
                 updateUI();
