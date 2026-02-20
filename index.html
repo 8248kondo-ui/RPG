@@ -1778,8 +1778,8 @@
                 const orbs = Math.floor(game.stage / 10);
                 console.log("① 獲得予定の宝物数: " + orbs);
 
-                // 獲得した宝物の抽選 (50ステージごとに1つ)
-                const artifactCount = Math.floor(game.stage / 50);
+                // 獲得した宝物の抽選 (1ステージにつき1つ)
+                const artifactCount = game.stage;
                 const acquiredArts = game.artMgr.draw(artifactCount);
                 console.log("⑦ UI描画に渡された宝物データ: ", acquiredArts);
 
