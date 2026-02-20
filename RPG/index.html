@@ -2312,8 +2312,10 @@
             QUEST_DATA.forEach(q => {
                 const s = game.getStats();
                 const cost = game.getQuestCost(q.id);
-                document.getElementById(`qlv-${q.id}`).textContent = (game.quests[q.id] || 0).toLocaleString();
-                document.getElementById(`qcost-${q.id}`).textContent = formatNumber(cost);
+                const qlvEl = document.getElementById(`qlv-${q.id}`);
+                const qcostEl = document.getElementById(`qcost-${q.id}`);
+                if (qlvEl) qlvEl.textContent = (game.quests[q.id] || 0).toLocaleString();
+                if (qcostEl) qcostEl.textContent = formatNumber(cost);
                 const qbtn = document.getElementById(`qbtn-${q.id}`);
                 if (qbtn) qbtn.disabled = game.gold < cost;
 
@@ -2352,8 +2354,10 @@
 
             // Return Orbs
             const pendingOrbs = Math.floor(game.stage / 10);
-            document.getElementById('pending-orbs').textContent = pendingOrbs.toLocaleString();
-            document.getElementById('return-btn').disabled = game.stage < 10;
+            const pendingEl = document.getElementById('pending-orbs');
+            if (pendingEl) pendingEl.textContent = pendingOrbs.toLocaleString();
+            const returnEl = document.getElementById('return-btn');
+            if (returnEl) returnEl.disabled = game.stage < 10;
         }
 
         function openMissions() { document.getElementById('mission-modal').style.display = 'flex'; }

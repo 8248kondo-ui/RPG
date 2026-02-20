@@ -105,7 +105,7 @@
             top: 70px;
             right: 15px;
             display: none;
-            /* 50体討伐まで隠す */
+            /* 累計50体討伐まで隠す */
             gap: 5px;
             z-index: 100;
         }
@@ -383,15 +383,134 @@
         .tab-content {
             display: none;
             flex: 1;
+            min-height: 0;
+            /* flexbox子要素のスクロール有効化に必須 */
             overflow-y: auto;
             padding: 10px 15px;
-            /* More generous padding for all tabs */
             -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-primary) transparent;
+        }
+
+        .tab-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .tab-content::-webkit-scrollbar-thumb {
+            background: var(--accent-primary);
+            border-radius: 10px;
         }
 
         .tab-content.active {
             display: flex;
             flex-direction: column;
+        }
+
+        /* === デイリー実績タブ用スタイル === */
+        .daily-mission-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
+            transition: 0.2s;
+        }
+
+        .daily-mission-card.completed {
+            border-color: rgba(34, 197, 94, 0.4);
+            background: rgba(34, 197, 94, 0.08);
+        }
+
+        .daily-mission-card.claimed {
+            opacity: 0.5;
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .daily-mission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .daily-mission-title {
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
+        .daily-mission-reward {
+            color: var(--orb);
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .daily-progress-bar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .daily-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+
+        .daily-mission-card.completed .daily-progress-fill {
+            background: linear-gradient(90deg, var(--success), #4ade80);
+        }
+
+        .daily-progress-text {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-align: right;
+            margin-bottom: 8px;
+        }
+
+        .claim-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .claim-btn.available {
+            background: linear-gradient(to right, var(--success), #4ade80);
+            color: var(--bg-color);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+
+        .claim-btn.available:active {
+            transform: scale(0.96);
+        }
+
+        .claim-btn.locked {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            cursor: not-allowed;
+        }
+
+        .claim-btn.claimed-btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            cursor: default;
+        }
+
+        .daily-reset-info {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 15px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
         }
 
         /* ショップ・実績 */
@@ -1190,6 +1309,7 @@
                 <button class="tab-btn" onclick="showTab('quests')">内政</button>
                 <button class="tab-btn" onclick="showTab('artifacts')">宝物</button>
                 <button class="tab-btn" onclick="showTab('gacha')">ガチャ</button>
+                <button class="tab-btn" onclick="showTab('daily')">実績</button>
             </div>
 
             <div id="units-tab" class="tab-content active">
@@ -1247,7 +1367,21 @@
                             10回引く (1000 Orbs)
                         </button>
                     </div>
+                    <div style="margin-top:15px;">
+                        <div style="font-size:0.85rem; color:var(--text-dim); margin-bottom:10px; padding:0 20px;">📦
+                            所持アイテム</div>
+                        <div class="gacha-owned" id="gacha-owned-list"></div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- ===== 実績（デイリー）タブ ===== -->
+            <div id="daily-tab" class="tab-content">
+                <div class="shop-header">
+                    <span class="shop-title">🏆 デイリー実績</span>
+                </div>
+                <div class="daily-reset-info" id="daily-reset-timer">次のリセットまで: --:--:--</div>
+                <div id="daily-mission-list"></div>
             </div>
 
             <div class="footer-stats">
@@ -1705,6 +1839,18 @@
             }
         }
 
+        // === デイリー実績データ定義 ===
+        const DAILY_MISSIONS = [
+            { id: 'daily_kill_50', text: '敵を50体討伐する', target: 50, reward: 30, rewardType: 'orbs', icon: '⚔️', trackKey: 'dailyKills' },
+            { id: 'daily_kill_200', text: '敵を200体討伐する', target: 200, reward: 100, rewardType: 'orbs', icon: '💀', trackKey: 'dailyKills' },
+            { id: 'daily_gold_10k', text: 'ゴールドを10,000獲得', target: 10000, reward: 20, rewardType: 'orbs', icon: '💰', trackKey: 'dailyGoldEarned' },
+            { id: 'daily_gacha_3', text: 'ガチャを3回引く', target: 3, reward: 50, rewardType: 'orbs', icon: '🎰', trackKey: 'dailyGachaPulls' },
+            { id: 'daily_stage_10', text: 'ステージ10に到達', target: 10, reward: 40, rewardType: 'orbs', icon: '🏔️', trackKey: 'dailyMaxStage' },
+            { id: 'daily_unit_buy_5', text: '兵士を5回雇用する', target: 5, reward: 25, rewardType: 'orbs', icon: '🗡️', trackKey: 'dailyUnitBuys' },
+            { id: 'daily_boss_1', text: 'ボスを1体討伐する', target: 1, reward: 60, rewardType: 'orbs', icon: '🐉', trackKey: 'dailyBossKills' },
+            { id: 'daily_quest_3', text: '内政を3回強化する', target: 3, reward: 30, rewardType: 'orbs', icon: '📜', trackKey: 'dailyQuestBuys' },
+        ];
+
         class Game {
             constructor() {
                 this.stage = 1; this.gold = 0; this.orbs = 0; this.units = {};
@@ -1713,8 +1859,8 @@
                 this.gachaMgr = new GachaManager();
                 this.buyMode = 1;
                 this.totalKills = 0;
-                this.killsInSession = 0; // 倍速解放用のセッション討伐数
-                this.gameSpeed = 1.0;    // 現在の倍速設定
+                this.killsInSession = 0;
+                this.gameSpeed = 1.0;
                 this.quests = {};
                 QUEST_DATA.forEach(q => this.quests[q.id] = 0);
 
@@ -1723,6 +1869,38 @@
                     { id: 'kill_500', text: '敵を500体討伐', target: 500, reward: 200, done: false },
                     { id: 'kill_2000', text: '敵を2000体討伐', target: 2000, reward: 1000, done: false }
                 ];
+
+                // デイリー実績トラッキング
+                this.dailyData = {
+                    date: new Date().toDateString(),
+                    dailyKills: 0,
+                    dailyGoldEarned: 0,
+                    dailyGachaPulls: 0,
+                    dailyMaxStage: 1,
+                    dailyUnitBuys: 0,
+                    dailyBossKills: 0,
+                    dailyQuestBuys: 0,
+                    claimed: {} // { mission_id: true }
+                };
+            }
+            // デイリーリセットチェック
+            checkDailyReset() {
+                const today = new Date().toDateString();
+                if (this.dailyData.date !== today) {
+                    console.log('[Daily] リセット実行:', this.dailyData.date, '->', today);
+                    this.dailyData = {
+                        date: today,
+                        dailyKills: 0,
+                        dailyGoldEarned: 0,
+                        dailyGachaPulls: 0,
+                        dailyMaxStage: this.stage,
+                        dailyUnitBuys: 0,
+                        dailyBossKills: 0,
+                        dailyQuestBuys: 0,
+                        claimed: {}
+                    };
+                    this.save();
+                }
             }
             getUnitCost(id, count = 1) {
                 const type = UNIT_TYPES.find(u => u.id === id);
@@ -1807,7 +1985,10 @@
                 console.log("④ セーブ処理開始");
                 const data = {
                     s: this.stage, g: this.gold, o: this.orbs, u: this.units, q: this.quests,
-                    a: this.artMgr.owned, ga: this.gachaMgr.owned, tk: this.totalKills, md: this.missions.map(m => m.done)
+                    a: this.artMgr.owned, ga: this.gachaMgr.owned, tk: this.totalKills,
+                    ks: this.killsInSession,
+                    md: this.missions.map(m => m.done),
+                    dd: this.dailyData
                 };
                 localStorage.setItem('RPG_SAVE_PRO_V2', JSON.stringify(data));
                 console.log("⑤ セーブ処理完了");
@@ -1821,6 +2002,7 @@
                         this.gold = d.g || 0;
                         this.orbs = d.o || 0;
                         this.totalKills = d.tk || 0;
+                        this.killsInSession = d.ks || 0;
 
                         // ユニットレベルの統合（新ユニット対応）
                         if (d.u) {
@@ -1849,7 +2031,14 @@
                         }
 
                         if (d.md) this.missions.forEach((m, i) => m.done = d.md[i]);
+
+                        // デイリー実績の読み込み
+                        if (d.dd) {
+                            this.dailyData = { ...this.dailyData, ...d.dd };
+                        }
                     }
+                    // デイリーリセットチェック
+                    this.checkDailyReset();
                 } catch (e) {
                     console.error("Save load error:", e);
                 }
@@ -1864,15 +2053,10 @@
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`${t}-tab`).classList.add('active');
-            event.currentTarget.classList.add('active');
+            if (event && event.currentTarget) event.currentTarget.classList.add('active');
 
-            // ユニットタブ時は広い領域を確保するためのクラスを付与
-            const wrapper = document.getElementById('game-wrapper');
-            if (t === 'units') {
-                wrapper.classList.add('unit-mode');
-            } else {
-                wrapper.classList.remove('unit-mode');
-            }
+            // 全タブで統一したスクロール領域（unit-modeクラスは不要に）
+            if (t === 'daily') renderDailyMissions();
         }
 
         function toggleBuyMode() {
@@ -2054,11 +2238,12 @@
 
         function updateGachaOwned() {
             const list = document.getElementById('gacha-owned-list');
+            if (!list) return; // 要素がない場合は安全にスキップ
             list.innerHTML = '';
             for (const [id, count] of Object.entries(game.gachaMgr.owned)) {
                 if (count <= 0) continue;
                 const data = GACHA_ITEMS.find(i => i.id === id);
-                if (!data) continue; // 旧データ（削除されたアイテム）はスキップ
+                if (!data) continue;
 
                 const el = document.createElement('div');
                 el.className = 'gacha-item';
@@ -2086,9 +2271,9 @@
                 screen.classList.add(bgClass);
             }
 
-            // 倍速ボタンの表示制御（50体討伐で解放）
+            // 倍速ボタンの表示制御（累計50体討伐で恒久解放）
             const speedControls = document.getElementById('speed-controls');
-            if (game.killsInSession >= 50) speedControls.style.display = 'flex';
+            if (game.totalKills >= 50) speedControls.style.display = 'flex';
             else speedControls.style.display = 'none';
 
             document.getElementById('stage-num').innerHTML = battle.isBoss ? `<span style="color:var(--danger)">BOSS</span> ${game.stage}` : game.stage;
@@ -2097,8 +2282,13 @@
             document.getElementById('gps-val').textContent = formatNumber(game.getGps());
             document.getElementById('dps-val').textContent = formatNumber(s.dps);
 
-            const baseAtkSum = UNIT_TYPES.reduce((acc, t) => acc + t.baseAtk * game.units[t.id], 0) || 5;
-            document.getElementById('multi-val').textContent = `x${(s.dps / baseAtkSum).toFixed(1)}`;
+            // Bonus計算: baseAtkSumが0の場合は初期攻撃力で代替し、0除算を防止
+            const baseAtkSum = UNIT_TYPES.reduce((acc, t) => acc + (t.baseAtk * 1.5) * (game.units[t.id] || 0), 0);
+            if (baseAtkSum > 0) {
+                document.getElementById('multi-val').textContent = `x${(s.dps / baseAtkSum).toFixed(1)}`;
+            } else {
+                document.getElementById('multi-val').textContent = 'x1.0';
+            }
 
             // Ally HP Bar
             const allyHpPercent = Math.max(0, (battle.allyHp / battle.allyMaxHp) * 100);
@@ -2122,8 +2312,10 @@
             QUEST_DATA.forEach(q => {
                 const s = game.getStats();
                 const cost = game.getQuestCost(q.id);
-                document.getElementById(`qlv-${q.id}`).textContent = (game.quests[q.id] || 0).toLocaleString();
-                document.getElementById(`qcost-${q.id}`).textContent = formatNumber(cost);
+                const qlvEl = document.getElementById(`qlv-${q.id}`);
+                const qcostEl = document.getElementById(`qcost-${q.id}`);
+                if (qlvEl) qlvEl.textContent = (game.quests[q.id] || 0).toLocaleString();
+                if (qcostEl) qcostEl.textContent = formatNumber(cost);
                 const qbtn = document.getElementById(`qbtn-${q.id}`);
                 if (qbtn) qbtn.disabled = game.gold < cost;
 
@@ -2162,8 +2354,10 @@
 
             // Return Orbs
             const pendingOrbs = Math.floor(game.stage / 10);
-            document.getElementById('pending-orbs').textContent = pendingOrbs.toLocaleString();
-            document.getElementById('return-btn').disabled = game.stage < 10;
+            const pendingEl = document.getElementById('pending-orbs');
+            if (pendingEl) pendingEl.textContent = pendingOrbs.toLocaleString();
+            const returnEl = document.getElementById('return-btn');
+            if (returnEl) returnEl.disabled = game.stage < 10;
         }
 
         function openMissions() { document.getElementById('mission-modal').style.display = 'flex'; }
@@ -2190,6 +2384,7 @@
             const cost = game.getUnitCost(id, bCount);
             if (game.gold >= cost) {
                 game.gold -= cost; game.units[id] += bCount;
+                game.dailyData.dailyUnitBuys = (game.dailyData.dailyUnitBuys || 0) + bCount;
                 if (typeof event !== 'undefined' && event.currentTarget) {
                     createAtkUpPop(event.currentTarget);
                 }
@@ -2202,6 +2397,7 @@
             if (game.gold >= cost) {
                 game.gold -= cost;
                 game.quests[id] = (game.quests[id] || 0) + 1;
+                game.dailyData.dailyQuestBuys = (game.dailyData.dailyQuestBuys || 0) + 1;
                 updateUI();
                 game.save();
             }
@@ -2210,6 +2406,7 @@
         function pullGacha() {
             if (game.orbs >= 100) {
                 game.orbs -= 100;
+                game.dailyData.dailyGachaPulls = (game.dailyData.dailyGachaPulls || 0) + 1;
                 const res = game.gachaMgr.pull();
                 if (res) {
                     showGachaResults([res]);
@@ -2224,6 +2421,7 @@
         function pullGacha10() {
             if (game.orbs >= 1000) {
                 game.orbs -= 1000;
+                game.dailyData.dailyGachaPulls = (game.dailyData.dailyGachaPulls || 0) + 10;
                 const results = [];
                 for (let i = 0; i < 10; i++) {
                     const res = game.gachaMgr.pull();
@@ -2417,7 +2615,7 @@
 
                 // オーブの追加と保存
                 game.orbs += orbs;
-                console.log("② 加算後の総宝物数: " + game.orbs);
+                console.log("② 加算後の総オーブ数: " + game.orbs);
 
                 // リセット処理
                 game.stage = 1;
@@ -2425,7 +2623,9 @@
                 game.killsInSession = 0;
 
                 const g = game.gachaMgr.getBonuses();
-                UNIT_TYPES.forEach(t => game.units[t.id] = g.initialLv);
+                const initLv = g.initialLv || 0; // undefinedの場合は0にフォールバック
+                console.log("[Return] initialLv = " + initLv);
+                UNIT_TYPES.forEach(t => game.units[t.id] = initLv);
                 battle.enemyHp = 50;
                 battle.enemyMaxHp = 50;
                 battle.isBoss = false;
@@ -2520,7 +2720,9 @@
                 // 敵討伐時の処理
                 if (battle.enemyHp <= 0) {
                     game.totalKills++;
-                    game.killsInSession++; // セッション討伐数をカウント
+                    game.killsInSession++;
+                    game.dailyData.dailyKills = (game.dailyData.dailyKills || 0) + 1;
+                    if (battle.isBoss) game.dailyData.dailyBossKills = (game.dailyData.dailyBossKills || 0) + 1;
                     game.checkMissions();
 
                     let g = 10 * Math.pow(1.2, game.stage - 1) * s.goldMulti;
@@ -2529,6 +2731,8 @@
                     if (Math.random() < s.tripleGold) g *= 3;
                     if (Math.random() < s.doubleReward) g *= 2;
                     game.gold += g;
+                    game.dailyData.dailyGoldEarned = (game.dailyData.dailyGoldEarned || 0) + g;
+                    if (game.stage > (game.dailyData.dailyMaxStage || 0)) game.dailyData.dailyMaxStage = game.stage;
                     createPop(g, true);
                     spawnEnemy();
                 }
@@ -2571,12 +2775,85 @@
             requestAnimationFrame(loop);
         }
 
+        // === デイリー実績の描画関数 ===
+        function renderDailyMissions() {
+            const container = document.getElementById('daily-mission-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            game.checkDailyReset();
+
+            DAILY_MISSIONS.forEach(dm => {
+                const current = game.dailyData[dm.trackKey] || 0;
+                const progress = Math.min(current / dm.target, 1);
+                const isCompleted = current >= dm.target;
+                const isClaimed = game.dailyData.claimed[dm.id] === true;
+
+                const card = document.createElement('div');
+                card.className = 'daily-mission-card' + (isClaimed ? ' claimed' : (isCompleted ? ' completed' : ''));
+
+                let btnHtml = '';
+                if (isClaimed) {
+                    btnHtml = '<button class="claim-btn claimed-btn" disabled>✅ 受取済み</button>';
+                } else if (isCompleted) {
+                    btnHtml = `<button class="claim-btn available" onclick="claimDailyReward('${dm.id}')">🎁 報酬を受け取る (${dm.reward} Orbs)</button>`;
+                } else {
+                    btnHtml = `<button class="claim-btn locked" disabled>未達成 (${Math.floor(progress * 100)}%)</button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="daily-mission-header">
+                        <span class="daily-mission-title">${dm.icon} ${dm.text}</span>
+                        <span class="daily-mission-reward">🎁 ${dm.reward} Orbs</span>
+                    </div>
+                    <div class="daily-progress-bar">
+                        <div class="daily-progress-fill" style="width:${(progress * 100).toFixed(1)}%"></div>
+                    </div>
+                    <div class="daily-progress-text">${Math.min(current, dm.target).toLocaleString()} / ${dm.target.toLocaleString()}</div>
+                    ${btnHtml}
+                `;
+                container.appendChild(card);
+            });
+
+            updateDailyResetTimer();
+        }
+
+        function claimDailyReward(missionId) {
+            const dm = DAILY_MISSIONS.find(m => m.id === missionId);
+            if (!dm) return;
+            if (game.dailyData.claimed[missionId]) return;
+            const current = game.dailyData[dm.trackKey] || 0;
+            if (current < dm.target) return;
+
+            game.dailyData.claimed[missionId] = true;
+            game.orbs += dm.reward;
+            game.save();
+            renderDailyMissions();
+            updateUI();
+        }
+
+        function updateDailyResetTimer() {
+            const el = document.getElementById('daily-reset-timer');
+            if (!el) return;
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            const diff = tomorrow - now;
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            el.textContent = `次のリセットまで: ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
         game.load();
         initUI();
+        renderDailyMissions();
         updateUI();
         window.addEventListener('mousemove', moveTooltip);
         requestAnimationFrame(loop);
         setInterval(() => game.save(), 5000);
+        setInterval(updateDailyResetTimer, 1000);
     </script>
 </body>
 
