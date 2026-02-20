@@ -1778,9 +1778,31 @@
                 const orbs = Math.floor(game.stage / 10);
                 console.log("① 獲得予定の宝物数: " + orbs);
 
+                // 獲得した宝物の抽選 (50ステージごとに1つ)
+                const artifactCount = Math.floor(game.stage / 50);
+                const acquiredArts = game.artMgr.draw(artifactCount);
+                console.log("⑦ UI描画に渡された宝物データ: ", acquiredArts);
+
                 // 獲得情報の表示（リセット前に値をセット）
                 document.getElementById('res-stage').textContent = game.stage;
                 document.getElementById('res-orbs').textContent = orbs;
+
+                // 獲得した宝物のリスト表示（Step 3 確認）
+                const resArtList = document.getElementById('res-art-list');
+                resArtList.innerHTML = '';
+                if (acquiredArts.length > 0) {
+                    acquiredArts.forEach(art => {
+                        const div = document.createElement('div');
+                        div.style.textAlign = 'center';
+                        div.innerHTML = `
+                            <div style="font-size:1.5rem;">${art.icon}</div>
+                            <div style="font-size:0.6rem; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${art.name}</div>
+                        `;
+                        resArtList.appendChild(div);
+                    });
+                } else {
+                    resArtList.innerHTML = '<div style="grid-column: span 4; font-size:0.8rem; color:var(--text-dim);">なし</div>';
+                }
 
                 // オーブの追加と保存
                 game.orbs += orbs;
