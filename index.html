@@ -990,6 +990,7 @@
 
             <div class="tabs">
                 <button class="tab-btn active" onclick="showTab('units')">兵士</button>
+                <button class="tab-btn" onclick="showTab('quests')">内政</button>
                 <button class="tab-btn" onclick="showTab('artifacts')">宝物</button>
                 <button class="tab-btn" onclick="showTab('gacha')">ガチャ</button>
             </div>
@@ -1000,6 +1001,16 @@
                     <button class="toggle-btn" id="buy-mode-btn" onclick="toggleBuyMode()">購入: x1</button>
                 </div>
                 <div id="unit-list"></div>
+            </div>
+
+            <div id="quests-tab" class="tab-content">
+                <div class="shop-header">
+                    <span class="shop-title">内政・クエスト</span>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 10px;">
+                    クエストを強化することで、戦闘中も自動的にゴールドが生産されます (GPS)。
+                </p>
+                <div id="quest-list"></div>
             </div>
 
             <div id="artifacts-tab" class="tab-content">
@@ -1025,7 +1036,12 @@
                     <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 25px;">
                         失われた秘宝や契約のオーブを捧げ、<br>冒険を恒久的に強化するアーティファクトを引き当てろ。
                     </p>
-                    <button class="gacha-btn" onclick="pullGacha()">ガチャ (100 Orbs)</button>
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <button class="gacha-btn" onclick="pullGacha()" style="flex:1;">1回引く (100 Orbs)</button>
+                        <button class="gacha-btn" onclick="pullGacha10()"
+                            style="flex:1; background:linear-gradient(to right, #f59e0b, #ef4444);">10回引く (1000
+                            Orbs)</button>
+                    </div>
                     <div id="gacha-owned-list" class="gacha-owned"></div>
                 </div>
             </div>
@@ -1038,6 +1054,10 @@
                 <div class="stat-box">
                     <span class="stat-lbl">Orbs</span>
                     <span id="orb-val" class="stat-val color-orb">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-lbl">GPS</span>
+                    <span id="gps-val" class="stat-val color-gold">0</span>
                 </div>
                 <div class="stat-box">
                     <span class="stat-lbl">DPS</span>
@@ -1062,8 +1082,8 @@
 
         <div id="result-overlay" class="overlay">
             <div class="result-card">
-                <h2 style="color:var(--accent-primary); margin-top:0;">帰還達成</h2>
-                <div style="margin: 25px 0; text-align: left; font-size: 1.1rem;">
+                <h2 style="color:var(--accent-primary); margin-top:0;" id="res-title">帰還達成</h2>
+                <div id="res-stats-area" style="margin: 25px 0; text-align: left; font-size: 1.1rem;">
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px;">到達ステージ: <span
                             id="res-stage">1</span></div>
                     <div style="display:flex; justify-content:space-between; color:var(--orb); font-weight:bold;">獲得オーブ:
@@ -1115,6 +1135,36 @@
             HR: { name: 'HYPER RARE', color: '#3b82f6', chance: 0.07 },
             R: { name: 'RARE', color: '#22c55e', chance: 0.20 },
             N: { name: 'NORMAL', color: '#94a3b8', chance: 0.70 }
+        };
+
+        // スキルIDを日本語名に変換する辞書
+        const EFFECT_TEXT = {
+            'atk_add': '全攻撃力UP',
+            'atk_multi': '攻撃速度UP',
+            'gold_multi': '獲得ゴールドUP',
+            'hp_multi': '最大HP・防御UP',
+            'area_damage': '確率で範囲ダメージを与える',
+            'holy_regen': '聖なる光でHPが持続回復する',
+            'curse_atk': 'HPを削り、攻撃力を極限まで高める',
+            'crit_up': '致命的な一撃が出る確率が上昇',
+            'pierce_shot': '敵の装甲を貫通してダメージを与える',
+            'cheat_death': '死の淵から一度だけ蘇る',
+            'reflect_dmg': '受けたダメージの一部を敵に反射する',
+            'slow_move': '防御を極めるが、行動がわずかに鈍る',
+            'resist_all': 'あらゆる状態異常やデバフを無効化する',
+            'absorb_atk': '敵の攻撃を吸収し、自らの力に変える',
+            'lucky_drop': '敵がレアアイテムを落としやすくなる',
+            'extra_coin': '敵を倒した際、追加でコインを獲得する',
+            'pain_coin': 'ダメージを受けるたび、わずかにゴールドを得る',
+            'greed_aura': '強欲のオーラを纏い、全収入を増幅させる',
+            'boss_rich': 'ボス討伐時の報酬が大幅に増加する',
+            'evasion_up': '敵の攻撃を華麗に回避する確率が上昇',
+            'double_tap': '一撃で二度のダメージを与える',
+            'time_stop': '確率で敵の時間を一時的に停止させる',
+            'no_delay': '攻撃の間隔が限界まで短縮される',
+            'instant_action': '行動のリキャスタイムが消失する',
+            'divine_shred': '神の加護により、ステージが進むほど強くなる',
+            'instant_kill': '低確率で敵を一撃のもとに屠る'
         };
 
         const ARTIFACT_DATA = [
@@ -1290,6 +1340,14 @@
             { id: 'rainbow_crystal', rarity: 'L', name: '虹のクリスタル', icon: '🌈', desc: '全能力大幅UP', max: 1, effect: 'all_stats_mega', chance: 0.01 }
         ];
 
+        const QUEST_DATA = [
+            { id: 'apple', name: 'リンゴ拾い', icon: '🍎', baseGps: 5, baseCost: 100 },
+            { id: 'mine', name: '鉱山発掘', icon: '⛏️', baseGps: 50, baseCost: 1500 },
+            { id: 'trade', name: '交易所', icon: '⚖️', baseGps: 450, baseCost: 20000 },
+            { id: 'tax', name: '徴税所', icon: '📜', baseGps: 3500, baseCost: 250000 },
+            { id: 'bank', name: '王国銀行', icon: '🏦', baseGps: 25000, baseCost: 3000000 }
+        ];
+
         const ENEMY_ICONS = ['👹', '💀', '👻', '🧟', '🐺', '🦂', '🕷️'];
 
         // --- ユーティリティ ---
@@ -1441,6 +1499,9 @@
                 this.totalKills = 0;
                 this.killsInSession = 0; // 倍速解放用のセッション討伐数
                 this.gameSpeed = 1.0;    // 現在の倍速設定
+                this.quests = {};
+                QUEST_DATA.forEach(q => this.quests[q.id] = 0);
+
                 this.missions = [
                     { id: 'kill_100', text: '敵を100体討伐', target: 100, reward: 50, done: false },
                     { id: 'kill_500', text: '敵を500体討伐', target: 500, reward: 200, done: false },
@@ -1466,6 +1527,20 @@
                     if (tempGold >= cost && count < 1000) { tempGold -= cost; count++; } else break;
                 }
                 return count;
+            }
+            getQuestCost(id) {
+                const q = QUEST_DATA.find(x => x.id === id);
+                const lv = this.quests[id] || 0;
+                return Math.floor(q.baseCost * Math.pow(1.2, lv));
+            }
+            getGps() {
+                let total = 0;
+                QUEST_DATA.forEach(q => {
+                    const lv = this.quests[q.id] || 0;
+                    total += q.baseGps * lv;
+                });
+                const s = this.getStats();
+                return total * s.goldMulti;
             }
             getStats() {
                 try {
@@ -1515,7 +1590,7 @@
             save() {
                 console.log("④ セーブ処理開始");
                 const data = {
-                    s: this.stage, g: this.gold, o: this.orbs, u: this.units,
+                    s: this.stage, g: this.gold, o: this.orbs, u: this.units, q: this.quests,
                     a: this.artMgr.owned, ga: this.gachaMgr.owned, tk: this.totalKills, md: this.missions.map(m => m.done)
                 };
                 localStorage.setItem('RPG_SAVE_PRO_V2', JSON.stringify(data));
@@ -1535,6 +1610,11 @@
                         if (d.u) {
                             Object.keys(d.u).forEach(id => {
                                 if (this.units.hasOwnProperty(id)) this.units[id] = d.u[id];
+                            });
+                        }
+                        if (d.q) {
+                            Object.keys(d.q).forEach(id => {
+                                if (this.quests.hasOwnProperty(id)) this.quests[id] = d.q[id];
                             });
                         }
 
@@ -1629,6 +1709,29 @@
 
             filterArtifacts(); // フィルター状態を維持して宝物リスト生成
             updateGachaOwned();
+            initQuests();
+        }
+
+        function initQuests() {
+            const list = document.getElementById('quest-list');
+            list.innerHTML = '';
+            QUEST_DATA.forEach(q => {
+                const card = document.createElement('div');
+                card.id = `quest-card-${q.id}`;
+                card.className = 'item-card';
+                card.innerHTML = `
+                    <div class="item-icon-wrapper">
+                        <div class="item-icon">${q.icon}</div>
+                        <div class="unit-label">LEVEL <span id="qlv-${q.id}">0</span></div>
+                    </div>
+                    <div class="item-info">
+                        <span class="item-name">${q.name}</span>
+                        <span class="item-desc">GPS: +${formatNumber(q.baseGps)} / Cost: <span id="qcost-${q.id}">0</span></span>
+                    </div>
+                    <button class="buy-btn" id="qbtn-${q.id}" onclick="buyQuest('${q.id}')">強化</button>
+                `;
+                list.appendChild(card);
+            });
         }
 
         // アーティファクト検索・表示
@@ -1667,8 +1770,8 @@
                 <div style="color:var(--gold); font-weight:bold; letter-spacing:2px;">LEGENDARY ARTIFACT</div>
                 <div style="font-size:1.5rem; font-weight:bold; margin:10px 0;">${art.name}</div>
                 <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; font-size:0.85rem; text-align:left; color:var(--text-dim);">
-                    <b>固有スキル: ${art.special || 'なし'}</b><br>
-                    効果: ${art.effect.replace('_', ' ')} (+${(art.value * 100).toFixed(1)}%/Lv)<br><br>
+                    <b>固有スキル: ${EFFECT_TEXT[art.special] || 'なし'}</b><br>
+                    効果: ${EFFECT_TEXT[art.effect] || art.effect.replace('_', ' ')} (+${(art.value * 100).toFixed(1)}%/Lv)<br><br>
                     <span style="color:var(--text-main)">現在レベル: ${lv}</span><br>
                     <span style="color:var(--accent-secondary)">この秘宝は持ち続けるだけであなたの魂を永続的に強化します。</span>
                 </div>
@@ -1685,8 +1788,8 @@
                 <div style="font-weight:bold; font-size:1rem; margin:4px 0;">${art.name}</div>
                 <div style="color:var(--accent-secondary);">Level: ${lv.toLocaleString()}</div>
                 <div style="font-size:0.75rem; color:var(--text-dim); margin-top:8px;">
-                    効果: ${art.effect.replace('_', ' ')} (+${(art.value * 100).toFixed(1)}%/Lv)
-                    ${art.special ? `<br><span style="color:var(--gold)">★特殊: ${art.special}</span>` : ''}
+                    効果: ${EFFECT_TEXT[art.effect] || art.effect.replace('_', ' ')} (+${(art.value * 100).toFixed(1)}%/Lv)
+                    ${art.special ? `<br><span style="color:var(--gold)">★特殊: ${EFFECT_TEXT[art.special] || art.special}</span>` : ''}
                 </div>
             `;
             tt.style.display = 'block';
@@ -1743,6 +1846,7 @@
             document.getElementById('stage-num').innerHTML = battle.isBoss ? `<span style="color:var(--danger)">BOSS</span> ${game.stage}` : game.stage;
             document.getElementById('gold-val').textContent = formatNumber(game.gold);
             document.getElementById('orb-val').textContent = game.orbs.toLocaleString();
+            document.getElementById('gps-val').textContent = formatNumber(game.getGps());
             document.getElementById('dps-val').textContent = formatNumber(s.dps);
 
             const baseAtkSum = UNIT_TYPES.reduce((acc, t) => acc + t.baseAtk * game.units[t.id], 0) || 5;
@@ -1758,6 +1862,13 @@
                 document.getElementById(`cost-${type.id}`).textContent = formatNumber(cost);
                 const btn = document.getElementById(`btn-${type.id}`);
                 btn.disabled = game.gold < cost;
+            });
+
+            QUEST_DATA.forEach(q => {
+                const cost = game.getQuestCost(q.id);
+                document.getElementById(`qlv-${q.id}`).textContent = (game.quests[q.id] || 0).toLocaleString();
+                document.getElementById(`qcost-${q.id}`).textContent = formatNumber(cost);
+                document.getElementById(`qbtn-${q.id}`).disabled = game.gold < cost;
             });
 
             // Missions
@@ -1804,14 +1915,102 @@
             }
         }
 
+        function buyQuest(id) {
+            const cost = game.getQuestCost(id);
+            if (game.gold >= cost) {
+                game.gold -= cost;
+                game.quests[id] = (game.quests[id] || 0) + 1;
+                updateUI();
+                game.save();
+            }
+        }
+
         function pullGacha() {
             if (game.orbs >= 100) {
                 game.orbs -= 100;
                 const res = game.gachaMgr.pull();
-                if (res) alert(`獲得: ${res.icon} ${res.name}\n${res.desc}`);
-                else alert(`残念！何も獲得できませんでした（または所持上限）。`);
+                if (res) {
+                    showGachaResults([res]);
+                } else {
+                    alert(`残念！何も獲得できませんでした（または所持上限）。`);
+                }
                 updateGachaOwned(); updateUI(); game.save();
             } else alert(`オーブが足りません！`);
+        }
+
+        // 10連ガチャの実装
+        function pullGacha10() {
+            if (game.orbs >= 1000) {
+                game.orbs -= 1000;
+                const results = [];
+                for (let i = 0; i < 10; i++) {
+                    const res = game.gachaMgr.pull();
+                    if (res) results.push(res);
+                }
+
+                if (results.length > 0) {
+                    showGachaResults(results);
+                } else {
+                    alert(`残念！何も獲得できませんでした（または所持上限）。`);
+                }
+                updateGachaOwned(); updateUI(); game.save();
+            } else alert(`オーブが足りません！(1000 Orbs必要です)`);
+        }
+
+        // ガチャ結果を表示（レア順ソート）
+        function showGachaResults(items) {
+            const resTitle = document.getElementById('res-title');
+            const resStats = document.getElementById('res-stats-area');
+            const resArtList = document.getElementById('res-art-list');
+
+            resTitle.textContent = "ガチャ結果";
+            resTitle.style.color = "var(--orb)";
+            resStats.style.display = "none"; // 帰還用統計を非表示
+
+            // 集計
+            const counts = {};
+            items.forEach(it => {
+                counts[it.id] = (counts[it.id] || 0) + 1;
+            });
+
+            // レアリティ順にソート (L > SR > HR > R > N)
+            const rarityOrder = { 'L': 5, 'SR': 4, 'HR': 3, 'R': 2, 'N': 1 };
+            const sortedIds = Object.keys(counts).sort((a, b) => {
+                const dataA = GACHA_ITEMS.find(it => it.id === a);
+                const dataB = GACHA_ITEMS.find(it => it.id === b);
+                return rarityOrder[dataB.rarity] - rarityOrder[dataA.rarity];
+            });
+
+            resArtList.innerHTML = '';
+            sortedIds.forEach(id => {
+                const item = GACHA_ITEMS.find(it => it.id === id);
+                const count = counts[id];
+                const slot = document.createElement('div');
+                slot.className = `res-art-slot rarity-${item.rarity.toLowerCase()}`;
+                slot.innerHTML = `
+                    <div style="font-size:1.8rem;">${item.icon}</div>
+                    ${count > 1 ? `<div class="art-multi">×${count}</div>` : ''}
+                `;
+
+                // ガチャアイテムには別のツールチップ表示が必要かもしれないが、
+                // 現状のshowTooltipはARTIFACT_DATA前提なので調整が必要。
+                // ガチャアイテム用の簡易ツールチップを一時的に設定。
+                slot.onmouseenter = (e) => {
+                    const tt = document.getElementById('custom-tooltip');
+                    tt.innerHTML = `
+                        <div style="color:${RARITIES[item.rarity].color}; font-weight:bold;">${RARITIES[item.rarity].name}</div>
+                        <div style="font-weight:bold;">${item.name}</div>
+                        <div style="font-size:0.75rem; color:var(--text-dim); margin-top:5px;">${item.desc}</div>
+                    `;
+                    tt.style.display = 'block';
+                    moveTooltip(e);
+                };
+                slot.onmouseleave = hideTooltip;
+
+                resArtList.appendChild(slot);
+            });
+
+            document.getElementById('result-overlay').style.display = 'flex';
         }
 
         function createPop(val, isGold = false, isCrit = false) {
@@ -1891,6 +2090,9 @@
                 console.log("⑦ UI描画に渡された宝物データ: ", acquiredArts);
 
                 // 獲得情報の表示（リセット前に値をセット）
+                document.getElementById('res-title').textContent = "帰還達成";
+                document.getElementById('res-title').style.color = "var(--accent-primary)";
+                document.getElementById('res-stats-area').style.display = "block";
                 document.getElementById('res-stage').textContent = game.stage;
                 document.getElementById('res-orbs').textContent = orbs;
 
@@ -1979,6 +2181,10 @@
                 const now = Date.now();
                 const dt = ((now - battle.lastTick) / 1000) * game.gameSpeed; // 倍速適用のデルタタイム
                 battle.lastTick = now;
+
+                // 内政ゴールド生産
+                const gps = game.getGps();
+                game.gold += gps * dt;
 
                 const s = game.getStats();
                 battle.allyMaxHp = 200 * s.hpMulti;
