@@ -1406,11 +1406,13 @@
                 });
             }
             save() {
+                console.log("④ セーブ処理開始");
                 const data = {
                     s: this.stage, g: this.gold, o: this.orbs, u: this.units,
                     a: this.artMgr.owned, ga: this.gachaMgr.owned, tk: this.totalKills, md: this.missions.map(m => m.done)
                 };
                 localStorage.setItem('RPG_SAVE_PRO_V2', JSON.stringify(data));
+                console.log("⑤ セーブ処理完了");
             }
             load() {
                 try {
@@ -1774,6 +1776,7 @@
 
             try {
                 const orbs = Math.floor(game.stage / 10);
+                console.log("① 獲得予定の宝物数: " + orbs);
 
                 // 獲得情報の表示（リセット前に値をセット）
                 document.getElementById('res-stage').textContent = game.stage;
@@ -1781,6 +1784,7 @@
 
                 // オーブの追加と保存
                 game.orbs += orbs;
+                console.log("② 加算後の総宝物数: " + game.orbs);
 
                 // リセット処理
                 game.stage = 1;
@@ -1792,11 +1796,13 @@
                 battle.enemyHp = 50;
                 battle.enemyMaxHp = 50;
                 battle.isBoss = false;
+                console.log("③ ステータス初期化実行");
 
                 // 即座に保存
                 game.save();
 
                 // 結果画面の表示
+                console.log("⑥ 画面切り替え実行");
                 document.getElementById('result-overlay').style.display = 'flex';
 
                 // UI更新
