@@ -792,14 +792,107 @@
         }
 
         .result-card {
-            width: 85%;
-            max-width: 380px;
+            width: 90%;
+            max-width: 400px;
             background: var(--card-bg);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 28px;
-            padding: 35px;
+            padding: 25px;
             text-align: center;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 宝物リストのスクロール化とグリッド調整 */
+        .res-art-container {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #res-art-list {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            max-height: 40vh;
+            overflow-y: auto;
+            padding: 5px;
+            /* カスタムスクロールバー */
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-primary) transparent;
+        }
+
+        #res-art-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #res-art-list::-webkit-scrollbar-thumb {
+            background: var(--accent-primary);
+            border-radius: 10px;
+        }
+
+        @media (max-width: 480px) {
+            #res-art-list {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+            }
+        }
+
+        /* レアリティ別スロット演出 */
+        .res-art-slot {
+            aspect-ratio: 1;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: 0.3s;
+        }
+
+        .rarity-n {
+            border-color: #94a3b8;
+        }
+
+        .rarity-r {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .rarity-hr {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .rarity-sr {
+            border-color: #a855f7;
+            background: rgba(168, 85, 247, 0.1);
+        }
+
+        .rarity-l {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.15);
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+            animation: legend-glow 2s infinite;
+        }
+
+        @keyframes legend-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 5px rgba(251, 191, 36, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 15px rgba(251, 191, 36, 0.6);
+            }
         }
 
         /* ツールチップ */
@@ -977,9 +1070,9 @@
                         <span id="res-orbs">0</span>
                     </div>
                 </div>
-                <div style="background:rgba(0,0,0,0.2); border-radius:12px; padding:15px; margin-bottom:25px;">
+                <div class="res-art-container">
                     <div style="font-size:0.8rem; color:var(--text-dim); margin-bottom:10px;">獲得した宝物</div>
-                    <div id="res-art-list" style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;"></div>
+                    <div id="res-art-list"></div>
                 </div>
                 <button class="gacha-btn" onclick="closeResult()"
                     style="background:var(--accent-primary); color:var(--bg-color);">次元を越える</button>
@@ -1810,20 +1903,32 @@
                         counts[art.id] = (counts[art.id] || 0) + 1;
                     });
 
-                    Object.entries(counts).forEach(([id, count]) => {
+                    // レアリティ順にソート (L > SR > HR > R > N)
+                    const rarityOrder = { 'L': 5, 'SR': 4, 'HR': 3, 'R': 2, 'N': 1 };
+                    const sortedArtIds = Object.keys(counts).sort((a, b) => {
+                        const dataA = ARTIFACT_DATA.find(art => art.id === a);
+                        const dataB = ARTIFACT_DATA.find(art => art.id === b);
+                        return rarityOrder[dataB.rarity] - rarityOrder[dataA.rarity];
+                    });
+
+                    sortedArtIds.forEach(id => {
                         const art = ARTIFACT_DATA.find(a => a.id === id);
-                        const div = document.createElement('div');
-                        div.style.textAlign = 'center';
-                        div.style.position = 'relative';
-                        div.innerHTML = `
-                            <div style="font-size:1.5rem;">${art.icon}</div>
-                            <div style="font-size:0.55rem; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">${art.name}</div>
+                        const count = counts[id];
+                        const slot = document.createElement('div');
+                        slot.className = `res-art-slot rarity-${art.rarity.toLowerCase()}`;
+                        slot.innerHTML = `
+                            <div style="font-size:1.8rem;">${art.icon}</div>
                             ${count > 1 ? `<div class="art-multi">×${count}</div>` : ''}
                         `;
-                        resArtList.appendChild(div);
+
+                        // ツールチップ対応
+                        slot.onmouseenter = (e) => showTooltip(e, art);
+                        slot.onmouseleave = hideTooltip;
+
+                        resArtList.appendChild(slot);
                     });
                 } else {
-                    resArtList.innerHTML = '<div style="grid-column: span 4; font-size:0.8rem; color:var(--text-dim);">なし</div>';
+                    resArtList.innerHTML = '<div style="grid-column: span 5; font-size:0.8rem; color:var(--text-dim); padding: 20px;">なし</div>';
                 }
 
                 // オーブの追加と保存
