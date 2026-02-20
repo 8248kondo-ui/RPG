@@ -834,6 +834,20 @@
                 filter: brightness(1);
             }
         }
+
+        .art-multi {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            background: rgba(0, 0, 0, 0.8);
+            color: var(--gold);
+            font-size: 0.6rem;
+            padding: 1px 3px;
+            border-radius: 3px;
+            border: 1px solid var(--gold);
+            font-weight: bold;
+            pointer-events: none;
+        }
     </style>
 </head>
 
@@ -1787,16 +1801,24 @@
                 document.getElementById('res-stage').textContent = game.stage;
                 document.getElementById('res-orbs').textContent = orbs;
 
-                // 獲得した宝物のリスト表示（Step 3 確認）
+                // 獲得した宝物の集計表示（重複アイテムをまとめる）
                 const resArtList = document.getElementById('res-art-list');
                 resArtList.innerHTML = '';
                 if (acquiredArts.length > 0) {
+                    const counts = {};
                     acquiredArts.forEach(art => {
+                        counts[art.id] = (counts[art.id] || 0) + 1;
+                    });
+
+                    Object.entries(counts).forEach(([id, count]) => {
+                        const art = ARTIFACT_DATA.find(a => a.id === id);
                         const div = document.createElement('div');
                         div.style.textAlign = 'center';
+                        div.style.position = 'relative';
                         div.innerHTML = `
                             <div style="font-size:1.5rem;">${art.icon}</div>
-                            <div style="font-size:0.6rem; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${art.name}</div>
+                            <div style="font-size:0.55rem; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">${art.name}</div>
+                            ${count > 1 ? `<div class="art-multi">×${count}</div>` : ''}
                         `;
                         resArtList.appendChild(div);
                     });
