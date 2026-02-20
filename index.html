@@ -71,7 +71,7 @@
 
         /* バトルエリア */
         .battle-screen {
-            flex: 0 0 35%;
+            flex: 0 0 25%;
             position: relative;
             background: linear-gradient(to bottom, #1e1b4b, #0f172a);
             border-bottom: 2px solid rgba(255, 255, 255, 0.1);
@@ -348,14 +348,17 @@
             display: flex;
             flex-direction: column;
             background: var(--bg-color);
-            padding: 10px;
+            padding: 0;
+            /* Remove padding to allow mission-bar to touch edges */
             overflow: hidden;
         }
 
+        /* 固定実績バーの余白調整 */
         .tabs {
             display: flex;
             gap: 5px;
-            margin-bottom: 10px;
+            margin: 10px;
+            /* Bring back margin since management-area padding is 0 */
         }
 
         .tab-btn {
@@ -381,18 +384,9 @@
             display: none;
             flex: 1;
             overflow-y: auto;
-            padding: 5px;
-            /* スクロールバー非表示（オプション：iOSなどで操作性向上のため） */
+            padding: 10px 15px;
+            /* More generous padding for all tabs */
             -webkit-overflow-scrolling: touch;
-        }
-
-        /* ユニットタブ表示時のレイアウト調整 */
-        .game-wrapper.unit-mode .mission-area {
-            display: none;
-        }
-
-        .game-wrapper.unit-mode .battle-screen {
-            flex: 0 0 25%;
         }
 
         .tab-content.active {
@@ -497,29 +491,7 @@
             }
         }
 
-        /* 実績セクション */
-        .mission-area {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid rgba(168, 85, 247, 0.2);
-        }
-
-        .mission-title {
-            font-size: 0.85rem;
-            font-weight: bold;
-            color: var(--orb);
-            margin-bottom: 5px;
-        }
-
-        .mission-item {
-            font-size: 0.8rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-        }
+        /* Legacy mission-area styles removed */
 
         /* ヘルプボタン */
         .help-btn {
@@ -805,6 +777,229 @@
             flex-direction: column;
         }
 
+        /* --- 新規UIスタイル --- */
+        .mission-bar {
+            background: rgba(15, 23, 42, 0.85);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(8px);
+        }
+
+        .mission-bar:hover {
+            background: rgba(30, 41, 59, 0.95);
+        }
+
+        .mission-summary-text {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%;
+        }
+
+        .mission-reward-badge {
+            background: var(--orb);
+            color: var(--bg-color);
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .mission-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .mission-modal-content {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 420px;
+            border-radius: 20px;
+            padding: 25px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .mission-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mission-item.done {
+            border-color: rgba(34, 197, 94, 0.3);
+            background: rgba(34, 197, 94, 0.08);
+        }
+
+        .mission-info-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mission-progress-container {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .mission-progress-fill {
+            height: 100%;
+            background: var(--accent-primary);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .mission-item.done .mission-progress-fill {
+            background: var(--accent-secondary);
+        }
+
+        /* カード型UIの統一 */
+        .item-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            overflow: hidden;
+            transition: 0.2s;
+        }
+
+        .item-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .quest-progress-bg {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .quest-progress-fill {
+            height: 100%;
+            background: var(--accent-secondary);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .gps-increase {
+            color: var(--accent-secondary);
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-left: 5px;
+            animation: bounce-s 1.2s infinite;
+        }
+
+        @keyframes bounce-s {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-3px);
+            }
+        }
+
+        /* ガチャリニューアル */
+        .gacha-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .gacha-top {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            background: linear-gradient(to bottom, rgba(59, 130, 246, 0.1), transparent);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .gacha-banner-v2 {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--orb);
+            margin-bottom: 15px;
+        }
+
+        .gacha-bottom {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .gacha-btn-v2 {
+            width: 100%;
+            padding: 18px;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            border: none;
+        }
+
+        .gacha-btn-1 {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gacha-btn-10 {
+            background: linear-gradient(to right, #f59e0b, #ef4444);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .gacha-btn-v2:disabled {
+            opacity: 0.5;
+            filter: grayscale(1);
+        }
+
         /* 宝物リストのスクロール化とグリッド調整 */
         .res-art-container {
             background: rgba(0, 0, 0, 0.2);
@@ -980,11 +1175,13 @@
         </div>
 
         <div class="management-area">
-            <!-- 実績 / ミッション -->
-            <div class="mission-area">
-                <div class="mission-title">🎯 デイリー実績</div>
-                <div id="mission-list">
-                    <!-- JSで動的に追加 -->
+            <!-- 新しい固定実績バー -->
+            <div class="mission-bar" onclick="openMissions()">
+                <div class="mission-summary-text" id="mission-summary-text">
+                    🎯 ターゲット: 敵を100体討伐 (0/100)
+                </div>
+                <div class="mission-reward-badge">
+                    <span>🎁</span> <span id="mission-reward-val">50</span>
                 </div>
             </div>
 
@@ -1031,18 +1228,25 @@
             </div>
 
             <div id="gacha-tab" class="tab-content">
-                <div class="gacha-container">
-                    <div class="gacha-banner">🌌 神域の呼び声</div>
-                    <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 25px;">
-                        失われた秘宝や契約のオーブを捧げ、<br>冒険を恒久的に強化するアーティファクトを引き当てろ。
-                    </p>
-                    <div style="display:flex; gap:10px; margin-bottom:10px;">
-                        <button class="gacha-btn" onclick="pullGacha()" style="flex:1;">1回引く (100 Orbs)</button>
-                        <button class="gacha-btn" onclick="pullGacha10()"
-                            style="flex:1; background:linear-gradient(to right, #f59e0b, #ef4444);">10回引く (1000
-                            Orbs)</button>
+                <div class="gacha-layout">
+                    <div class="gacha-top">
+                        <div class="gacha-banner-v2">🌌 神域の宝物典</div>
+                        <div style="font-size: 0.8rem; color: var(--text-dim); max-width: 280px; margin: 0 auto;">
+                            古の神々が遺した秘宝の数々。<br>
+                            オーブを捧げることで、持ち主の魂を恒久的に強化する力の一部を得ることができます。
+                        </div>
+                        <div style="margin-top:20px; font-size:0.75rem; color:var(--accent-primary);">
+                            R以上 30% / HR以上 10% / L 0.5%
+                        </div>
                     </div>
-                    <div id="gacha-owned-list" class="gacha-owned"></div>
+                    <div class="gacha-bottom">
+                        <button class="gacha-btn-v2 gacha-btn-1" onclick="pullGacha()">
+                            1回引く (100 Orbs)
+                        </button>
+                        <button class="gacha-btn-v2 gacha-btn-10" onclick="pullGacha10()">
+                            10回引く (1000 Orbs)
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -1078,6 +1282,18 @@
         <div id="legend-detail" class="legend-popup" onclick="this.style.display='none'">
             <div id="legend-detail-content"></div>
             <button class="buy-btn" style="margin-top:15px; width:100%;">閉じる</button>
+        </div>
+
+        <!-- 実績詳細モーダル -->
+        <div id="mission-modal" class="mission-modal" onclick="event.target === this && closeMissions()">
+            <div class="mission-modal-content" onclick="event.stopPropagation()">
+                <h2 style="margin-top:0; display:flex; justify-content:space-between; align-items:center;">
+                    🎯 ステージ実績
+                    <span style="font-size:1rem; color:var(--text-dim); cursor:pointer;"
+                        onclick="closeMissions()">✕</span>
+                </h2>
+                <div id="mission-list-full"></div>
+            </div>
         </div>
 
         <div id="result-overlay" class="overlay">
@@ -1697,13 +1913,24 @@
                 list.appendChild(card);
             });
 
-            // Initial Mission List
-            const mList = document.getElementById('mission-list');
+            const mList = document.getElementById('mission-list-full');
             mList.innerHTML = '';
             game.missions.forEach(m => {
                 const el = document.createElement('div');
-                el.id = `mission-${m.id}`;
+                el.id = `mission-full-${m.id}`;
                 el.className = 'mission-item';
+                el.innerHTML = `
+                    <div class="mission-info-top">
+                        <span style="font-weight:bold;">${m.text}</span>
+                        <span style="color:var(--orb); font-size:0.8rem;">🎁 ${m.reward} Orbs</span>
+                    </div>
+                    <div class="mission-progress-container">
+                        <div class="mission-progress-fill" id="m-full-prog-${m.id}"></div>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-dim); text-align:right;">
+                        <span id="m-full-val-${m.id}">0</span> / ${m.target}
+                    </div>
+                `;
                 mList.appendChild(el);
             });
 
@@ -1725,10 +1952,14 @@
                         <div class="unit-label">LEVEL <span id="qlv-${q.id}">0</span></div>
                     </div>
                     <div class="item-info">
-                        <span class="item-name">${q.name}</span>
+                        <div style="display:flex; align-items:center; justify-content:space-between;">
+                            <span class="item-name">${q.name}</span>
+                            <span class="gps-increase" id="qinc-${q.id}">+${formatNumber(q.baseGps)}</span>
+                        </div>
                         <span class="item-desc">GPS: +${formatNumber(q.baseGps)} / Cost: <span id="qcost-${q.id}">0</span></span>
                     </div>
                     <button class="buy-btn" id="qbtn-${q.id}" onclick="buyQuest('${q.id}')">強化</button>
+                    <div class="quest-progress-bg"><div class="quest-progress-fill" id="qprog-${q.id}"></div></div>
                 `;
                 list.appendChild(card);
             });
@@ -1740,22 +1971,39 @@
             const artGrid = document.getElementById('artifact-list');
             artGrid.innerHTML = '';
 
+            // レイアウトをグリッド形式（リザルト画面と同じ）に統一
+            artGrid.style.display = 'grid';
+            artGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(60px, 1fr))';
+            artGrid.style.gap = '10px';
+            artGrid.style.padding = '10px';
+
             ARTIFACT_DATA.forEach(art => {
                 if (rarity !== 'ALL' && art.rarity !== rarity) return;
 
                 const slot = document.createElement('div');
                 slot.id = `art-slot-${art.id}`;
-                slot.className = 'artifact-slot';
-                if (game.artMgr.owned[art.id] > 0) slot.classList.add('owned');
-                slot.style.borderColor = RARITIES[art.rarity].color;
-                slot.innerHTML = art.icon;
+                slot.className = 'res-art-slot'; // リザルト画面のスタイルを流用
 
-                // レジェンドアイテムの特別演出
-                if (art.rarity === 'L') {
-                    slot.onclick = () => showLegendDetail(art);
+                const isOwned = game.artMgr.owned[art.id] > 0;
+                if (isOwned) {
+                    slot.classList.add(`rarity-${art.rarity.toLowerCase()}`);
+                    slot.classList.add('owned');
+                    slot.innerHTML = `<div style="font-size:1.8rem;">${art.icon}</div>`;
+
+                    // レジェンドアイテムの特別演出
+                    if (art.rarity === 'L') {
+                        slot.onclick = () => showLegendDetail(art);
+                        slot.style.cursor = 'pointer';
+                    }
+                } else {
+                    slot.style.opacity = '0.2';
+                    slot.style.filter = 'grayscale(1)';
+                    slot.innerHTML = `<div style="font-size:1.8rem;">❓</div>`;
                 }
 
-                slot.onmouseenter = (e) => showTooltip(e, art);
+                slot.onmouseenter = (e) => {
+                    if (isOwned) showTooltip(e, art);
+                };
                 slot.onmouseleave = hideTooltip;
                 artGrid.appendChild(slot);
             });
@@ -1852,40 +2100,74 @@
             const baseAtkSum = UNIT_TYPES.reduce((acc, t) => acc + t.baseAtk * game.units[t.id], 0) || 5;
             document.getElementById('multi-val').textContent = `x${(s.dps / baseAtkSum).toFixed(1)}`;
 
+            // Ally HP Bar
+            const allyHpPercent = Math.max(0, (battle.allyHp / battle.allyMaxHp) * 100);
+            document.getElementById('ally-hp-bar').style.width = allyHpPercent + '%';
+
+            // Enemy HP Bar
+            const enemyHpPercent = Math.max(0, (battle.enemyHp / battle.enemyMaxHp) * 100);
+            document.getElementById('enemy-hp-bar').style.width = enemyHpPercent + '%';
+
+            // Shop Buttons
             UNIT_TYPES.forEach(type => {
-                const card = document.getElementById(`unit-card-${type.id}`);
-                if (game.stage >= type.unlockAt) card.style.display = 'flex';
-                let bCount = game.buyMode === -1 ? game.getMaxBuy(type.id) : game.buyMode;
-                if (bCount < 1) bCount = 1;
-                const cost = game.getUnitCost(type.id, bCount);
-                document.getElementById(`lv-${type.id}`).textContent = game.units[type.id].toLocaleString();
-                document.getElementById(`cost-${type.id}`).textContent = formatNumber(cost);
+                const cost = game.getUnitCost(type.id, game.buyMode === -1 ? game.getMaxBuy(type.id) : game.buyMode);
+                const lvEl = document.getElementById(`lv-${type.id}`);
+                const costEl = document.getElementById(`cost-${type.id}`);
+                if (lvEl) lvEl.textContent = game.units[type.id].toLocaleString();
+                if (costEl) costEl.textContent = formatNumber(cost);
                 const btn = document.getElementById(`btn-${type.id}`);
-                btn.disabled = game.gold < cost;
+                if (btn) btn.disabled = game.gold < cost;
             });
 
             QUEST_DATA.forEach(q => {
+                const s = game.getStats();
                 const cost = game.getQuestCost(q.id);
                 document.getElementById(`qlv-${q.id}`).textContent = (game.quests[q.id] || 0).toLocaleString();
                 document.getElementById(`qcost-${q.id}`).textContent = formatNumber(cost);
-                document.getElementById(`qbtn-${q.id}`).disabled = game.gold < cost;
-            });
+                const qbtn = document.getElementById(`qbtn-${q.id}`);
+                if (qbtn) qbtn.disabled = game.gold < cost;
 
-            // Missions
-            game.missions.forEach(m => {
-                const el = document.getElementById(`mission-${m.id}`);
-                if (el) {
-                    el.innerHTML = `<span>${m.text} (${Math.min(game.totalKills, m.target)}/${m.target})</span>
-                                   <span style="color:${m.done ? 'var(--success)' : 'var(--text-dim)'}">${m.done ? '達成' : m.reward + 'O'}</span>`;
+                // 次のレベルでのGPS増加量を計算して表示
+                const incEl = document.getElementById(`qinc-${q.id}`);
+                if (incEl) {
+                    const inc = q.baseGps * s.goldMulti;
+                    incEl.textContent = `+${formatNumber(inc)}`;
                 }
             });
 
-            const pending = Math.floor(game.stage / 10);
-            document.getElementById('pending-orbs').textContent = pending;
+            // Gacha buttons
+            const gbtn1 = document.querySelector('.gacha-btn-1');
+            const gbtn10 = document.querySelector('.gacha-btn-10');
+            if (gbtn1) gbtn1.disabled = game.orbs < 100;
+            if (gbtn10) gbtn10.disabled = game.orbs < 1000;
+
+            // Missions update
+            let activeMission = game.missions.find(m => !m.done) || game.missions[game.missions.length - 1];
+            const summaryText = document.getElementById('mission-summary-text');
+            const summaryReward = document.getElementById('mission-reward-val');
+
+            if (summaryText) {
+                summaryText.textContent = `🎯 ${activeMission.text} (${Math.min(game.totalKills, activeMission.target)}/${activeMission.target})${activeMission.done ? ' ✅' : ''}`;
+            }
+            if (summaryReward) summaryReward.textContent = activeMission.reward;
+
+            game.missions.forEach(m => {
+                const el = document.getElementById(`mission-full-${m.id}`);
+                const prog = document.getElementById(`m-full-prog-${m.id}`);
+                const val = document.getElementById(`m-full-val-${m.id}`);
+                if (el) el.className = 'mission-item' + (m.done ? ' done' : '');
+                if (prog) prog.style.width = (Math.min(game.totalKills / m.target, 1) * 100) + '%';
+                if (val) val.textContent = Math.min(game.totalKills, m.target).toLocaleString();
+            });
+
+            // Return Orbs
+            const pendingOrbs = Math.floor(game.stage / 10);
+            document.getElementById('pending-orbs').textContent = pendingOrbs.toLocaleString();
             document.getElementById('return-btn').disabled = game.stage < 10;
-            document.getElementById('enemy-hp-bar').style.width = (battle.enemyHp / battle.enemyMaxHp * 100) + '%';
-            document.getElementById('ally-hp-bar').style.width = (battle.allyHp / battle.allyMaxHp * 100) + '%';
         }
+
+        function openMissions() { document.getElementById('mission-modal').style.display = 'flex'; }
+        function closeMissions() { document.getElementById('mission-modal').style.display = 'none'; }
 
         // --- ROI ロジック ---
         // ROI演出: ボタン位置に「攻撃力UP!」を表示
@@ -2185,6 +2467,21 @@
                 // 内政ゴールド生産
                 const gps = game.getGps();
                 game.gold += gps * dt;
+
+                // 内政プログレスバーの更新（視覚的な演出）
+                QUEST_DATA.forEach(q => {
+                    const prog = document.getElementById(`qprog-${q.id}`);
+                    if (prog) {
+                        const lv = game.quests[q.id] || 0;
+                        if (lv > 0) {
+                            // 秒間生産なので、1秒ごとにリセットされるバーで演出
+                            const cycle = (now % 1000) / 1000;
+                            prog.style.width = (cycle * 100) + '%';
+                        } else {
+                            prog.style.width = '0%';
+                        }
+                    }
+                });
 
                 const s = game.getStats();
                 battle.allyMaxHp = 200 * s.hpMulti;
