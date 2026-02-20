@@ -2300,6 +2300,12 @@
 
             // Shop Buttons
             UNIT_TYPES.forEach(type => {
+                // ステージ進行によるユニット解放チェック
+                const card = document.getElementById(`unit-card-${type.id}`);
+                if (card) {
+                    card.style.display = game.stage >= type.unlockAt ? 'flex' : 'none';
+                }
+
                 const cost = game.getUnitCost(type.id, game.buyMode === -1 ? game.getMaxBuy(type.id) : game.buyMode);
                 const lvEl = document.getElementById(`lv-${type.id}`);
                 const costEl = document.getElementById(`cost-${type.id}`);
