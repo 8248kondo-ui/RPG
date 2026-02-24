@@ -1904,49 +1904,24 @@
                     this.save();
                 }
             }
-            getUnitCost(id, count = 1) {
-                const type = UNIT_TYPES.find(u => u.id === id);
-                let lv = this.units[id];
-                let total = 0;
-                const costCut = this.gachaMgr.getBonuses().costCut;
-                for (let i = 0; i < count; i++) {
-                    total += type.baseCost * Math.pow(1.15, lv + i);
-                }
-                return Math.floor(total * costCut);
-            }
-            getMaxBuy(id) {
-                const type = UNIT_TYPES.find(u => u.id === id);
-                if (!type) return 0;
-                const costCut = this.gachaMgr.getBonuses().costCut;
-                let count = 0; let tempGold = this.gold; let lv = this.units[id] || 0;
-                while (count < 1000) { // 安全装置: 最大1000個まで
-                    // 浮動小数点誤差とNaNを防ぐ
-                    let nextCost = type.baseCost * Math.pow(1.15, lv + count) * costCut;
-                    if (isNaN(nextCost) || nextCost <= 0) break;
-                    let cost = Math.floor(nextCost);
-                    if (tempGold >= cost) {
-                        tempGold -= cost;
-                        count++;
-                    } else {
-                        break;
-                    }
-                }
-                return count;
-            }
-            getQuestCost(id, count = 1) {
-                const q = QUEST_DATA.find(x => x.id === id);
-                let lv = this.quests[id] || 0;
+            // --- 汎用コスト計算（兵士・内政共通） ---
+            _getCost(baseCost, currentLv, count, costMultiplier, costCut) {
                 let total = 0;
                 for (let i = 0; i < count; i++) {
-                    total += Math.floor(q.baseCost * Math.pow(1.2, lv + i));
+                    total += Math.floor(baseCost * Math.pow(costMultiplier, currentLv + i) * costCut);
                 }
                 return total;
             }
-            getMaxQuestBuy(id, maxLimit) {
-                const q = QUEST_DATA.find(x => x.id === id);
-                let count = 0; let tempGold = this.gold; let lv = this.quests[id] || 0;
+
+            // --- 汎用最大購入数計算（兵士・内政共通） ---
+            _getMaxBuy(baseCost, currentLv, maxLimit, costMultiplier, costCut, currentGold) {
+                let count = 0;
+                let tempGold = currentGold;
                 while (count < maxLimit) {
-                    let cost = Math.floor(q.baseCost * Math.pow(1.2, lv + count));
+                    let nextCost = baseCost * Math.pow(costMultiplier, currentLv + count) * costCut;
+                    if (isNaN(nextCost) || nextCost <= 0) break; // NaN保護
+                    let cost = Math.floor(nextCost);
+
                     if (tempGold >= cost && cost > 0) {
                         tempGold -= cost;
                         count++;
@@ -1955,6 +1930,39 @@
                     }
                 }
                 return count;
+            }
+
+            // --- 兵士（ユニット）用ラッパー ---
+            getUnitCost(id, count = 1) {
+                const type = UNIT_TYPES.find(u => u.id === id);
+                if (!type) return 0;
+                const costCut = this.gachaMgr.getBonuses().costCut;
+                let lv = this.units[id] || 0;
+                return this._getCost(type.baseCost, lv, count, 1.15, costCut);
+            }
+
+            getMaxBuy(id) {
+                const type = UNIT_TYPES.find(u => u.id === id);
+                if (!type) return 0;
+                const costCut = this.gachaMgr.getBonuses().costCut;
+                let lv = this.units[id] || 0;
+                return this._getMaxBuy(type.baseCost, lv, 1000, 1.15, costCut, this.gold);
+            }
+
+            // --- 内政（クエスト）用ラッパー ---
+            getQuestCost(id, count = 1) {
+                const q = QUEST_DATA.find(x => x.id === id);
+                if (!q) return 0;
+                let lv = this.quests[id] || 0;
+                // クエストには現状コストカットを適用していないため 1.0 (等倍) を渡す
+                return this._getCost(q.baseCost, lv, count, 1.2, 1.0);
+            }
+
+            getMaxQuestBuy(id, maxLimit) {
+                const q = QUEST_DATA.find(x => x.id === id);
+                if (!q) return 0;
+                let lv = this.quests[id] || 0;
+                return this._getMaxBuy(q.baseCost, lv, maxLimit, 1.2, 1.0, this.gold);
             }
             getGps() {
                 let total = 0;
