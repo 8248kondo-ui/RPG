@@ -1688,7 +1688,11 @@
             { id: 'soul_anchor', rarity: 'R', name: '魂の錨', icon: '⚓', desc: '帰還時ゴールド 1% 保持', max: 10, effect: 'keep_gold', chance: 0.08 },
             { id: 'accelerator', rarity: 'HR', name: '加速装置', icon: '🎛️', desc: '倍速効果 +5% / 個', max: 20, effect: 'speed_stack', chance: 0.05 },
             { id: 'paradox_box', rarity: 'SR', name: 'パラドックス箱', icon: '📦', desc: '全ガチャ排出率 +5%', max: 10, effect: 'none', chance: 0.03 },
-            { id: 'rainbow_crystal', rarity: 'L', name: '虹のクリスタル', icon: '🌈', desc: '全能力大幅UP', max: 1, effect: 'all_stats_mega', chance: 0.01 }
+            { id: 'rainbow_crystal', rarity: 'L', name: '虹のクリスタル', icon: '🌈', desc: '全能力大幅UP', max: 1, effect: 'all_stats_mega', chance: 0.01 },
+            // 新規: 特化型バフ
+            { id: 'gacha_giant_killer', rarity: 'SR', name: '巨人殺しの剣', icon: '🗡️', desc: 'ボスに対するダメージが別枠で2倍(累積可)', max: 5, effect: 'giant_killer', chance: 0.01 },
+            { id: 'gacha_executioner', rarity: 'SR', name: '処刑人の斧', icon: '🪓', desc: '敵HP50%以下時、クリティカルダメージ倍率+100%', max: 10, effect: 'executioner', chance: 0.01 },
+            { id: 'gacha_last_stand', rarity: 'HR', name: '背水の陣', icon: '🚩', desc: '所持ユニット種が少ないほど攻撃力UP(Max5倍)', max: 1, effect: 'last_stand', chance: 0.005 }
         ];
 
         const QUEST_DATA = [
@@ -1805,7 +1809,11 @@
                         goldStack: 0, tripleGold: 0, doubleReward: 0, costCut: 1.0,
                         extraAttack: 0, initialLv: 0, hpStack: 1.0, bossAtk: 1.0,
                         atkStack: 1.0, critStack: 0, regenStack: 0, reflectStack: 0,
-                        evadeStack: 0, doubleStack: 0, orbStack: 1.0, speedStack: 1.0
+                        evadeStack: 0, doubleStack: 0, orbStack: 1.0, speedStack: 1.0,
+                        giantKiller: 1.0, executioner: 0, lastStand: false,
+                        // 新規追加された効果の初期値
+                        luckStack: 0, rareSpawn: 0, instStack: 0, allStats: 0,
+                        orbStackHeavy: 0, keepStage: 0, keepGold: 0, allStatsMega: 0
                     };
 
                     for (const [id, count] of Object.entries(this.owned)) {
@@ -1831,11 +1839,26 @@
                         if (data.effect === 'orb_stack') b.orbStack += count * 0.05;
                         if (data.effect === 'orb_stack_heavy') b.orbStack += count * 0.20;
                         if (data.effect === 'speed_lite') b.speedStack += count * 0.005;
+                        if (data.effect === 'full_speed') b.speedStack += count * 0.02; // 全体速度
+                        if (data.effect === 'init_lv_stack') b.initialLv += count * 2; // 帰還初期レベル
+                        if (data.effect === 'all_stats') b.allStats += count * 0.03; // 全ステータス
+                        if (data.effect === 'all_stats_mega') b.allStatsMega += count * 1; // 全能力大幅UP (L)
+                        if (data.effect === 'inst_stack') b.instStack += count * 0.005; // 即死率
+                        if (data.effect === 'luck_stack') { /* 命中・回避は別途処理 */ }
+                        if (data.effect === 'rare_spawn') b.rareSpawn += count * 0.05; // レア敵出現率
+                        if (data.effect === 'skip_boss') { /* ボススキップは別途処理 */ }
+                        if (data.effect === 'keep_stage') b.keepStage += count * 0.10; // 全滅時ステージ保持
+                        if (data.effect === 'keep_gold') b.keepGold += count * 0.01; // 帰還時ゴールド保持
+
+                        // 新規ガチャアイテムの効果
+                        if (data.effect === 'giant_killer') b.giantKiller *= Math.pow(2.0, count);
+                        if (data.effect === 'executioner') b.executioner += (1.0 * count); // 1個につき+100%
+                        if (data.effect === 'last_stand' && count > 0) b.lastStand = true;
                     }
                     return b;
                 } catch (e) {
                     console.error("Gacha bonus calculation error:", e);
-                    return { goldStack: 0, costCut: 1.0, hpStack: 1.0, atkStack: 1.0 };
+                    return { goldStack: 0, costCut: 1.0, hpStack: 1.0, atkStack: 1.0, giantKiller: 1.0, executioner: 0, lastStand: false };
                 }
             }
         }
@@ -1973,37 +1996,98 @@
                 const s = this.getStats();
                 return total * s.goldMulti;
             }
+            // --- 超インフレ対応ダメージ計算関数（指数・累乗方式） ---
+            calculateDamage(baseAtk, lv, a, g, orbs, totalArtifacts, currentStage) {
+                // 1. レベル・マイルストーンの「累乗（Power）」化
+                // Lv100で10^1=10倍, Lv150で10^2=100倍, Lv200で10^3=1000倍...という指数関数的上昇
+                const milestoneCount = Math.floor(lv / 50);
+                const milestoneMultiplier = Math.pow(10, Math.max(0, milestoneCount - 1));
+
+                // 2. 宝物所持数による「コンボ乗算」
+                // 所持しているすべての宝物の「総数」を指数とし、1.05^N の爆発的掛け算を行う
+                const comboMultiplier = Math.pow(1.05, totalArtifacts);
+
+                // 4. ステージ進行ボーナス追加
+                // 進んだステージ数階層分だけ 1.01^N で微量の基礎火力を底上げ
+                const stageMultiplier = Math.pow(1.01, currentStage || 1);
+
+                // 宝物計算の「分離乗算」 (グループ別に乗算枠を構築)
+                // A: 全体攻撃UPグループ (基礎加算の合計、ガチャの加算含む)
+                const groupA_Sum = (2.0 + a.atkAdd) * g.atkStack;
+                // B: 属性/クラス特攻やレア宝物グループ合計
+                const groupB_Sum = Math.max(1.0, a.atkMulti);
+                // C: オーブ等その他の乗算
+                const groupC_Sum = 1.0 + (orbs * 0.05);
+
+                // 最終攻撃力の算出 (基礎 × マイルストーン × コンボ × ステージ × A × B × C)
+                let finalDamage = baseAtk * milestoneMultiplier * comboMultiplier * stageMultiplier * groupA_Sum * groupB_Sum * groupC_Sum;
+
+                // ボス特有の乗算
+                if (battle.isBoss) {
+                    finalDamage *= (g.bossAtk * g.giantKiller);
+                }
+
+                if (isNaN(finalDamage) || finalDamage <= 0) finalDamage = 10;
+
+                return finalDamage;
+            }
+
             getStats() {
                 try {
+                    const a = this.artMgr.getBonuses(this.stage); // artMgr.getBonuses() takes stage as argument
+                    const g = this.gachaMgr.getBonuses();
+
+                    // 総宝物数（アーティファクト＋ガチャアイテム）の算出
+                    let totalArtifacts = 0;
+                    Object.values(this.artMgr.owned).forEach(v => totalArtifacts += v);
+                    Object.values(this.gachaMgr.owned).forEach(v => totalArtifacts += v);
+
                     let baseAtk = 0;
+                    let activeUnitTypes = 0;
+
                     UNIT_TYPES.forEach(t => {
                         const lv = this.units[t.id] || 0;
-                        baseAtk += (t.baseAtk * 1.5) * lv;
+                        if (lv > 0) {
+                            activeUnitTypes++;
+                            // ユニットの基礎火力
+                            let unitBase = t.baseAtk * lv;
+
+                            // 専用のダメージ計算関数へ委譲（超インフレ計算用に宝物数とステージを渡す）
+                            let unitDps = this.calculateDamage(unitBase, lv, a, g, this.orbs, totalArtifacts, this.stage);
+
+                            baseAtk += unitDps;
+                        }
                     });
+
                     if (baseAtk === 0 || isNaN(baseAtk)) baseAtk = 10;
 
-                    const a = this.artMgr.getBonuses(this.stage);
-                    const g = this.gachaMgr.getBonuses();
-                    const orbBonus = (1 + (this.orbs * 0.1)) * g.orbStack;
+                    // --- 背水の陣バフ（種類が少ないほど強力、1種の時5倍、2種で4倍... 5種以上で1倍） ---
+                    let lastStandMulti = 1.0;
+                    if (g.lastStand && activeUnitTypes > 0) {
+                        lastStandMulti = Math.max(1.0, 6.0 - activeUnitTypes);
+                    }
+                    baseAtk *= lastStandMulti;
 
-                    let dps = (baseAtk * (2.0 + a.atkAdd) * a.atkMulti * g.atkStack) * orbBonus;
-                    if (battle.isBoss) dps *= g.bossAtk;
-                    if (isNaN(dps) || dps <= 0) dps = 10; // DPS下限とNaNガード
-
-                    return {
-                        dps,
-                        extraAttack: g.extraAttack + a.doubleTap + g.doubleStack,
-                        goldMulti: a.goldMulti * (1 + g.goldStack),
-                        hpMulti: a.hpMulti * g.hpStack,
-                        instantKill: a.instantKill,
-                        tripleGold: g.tripleGold,
-                        doubleReward: g.doubleReward,
-                        regen: a.regen + g.regenStack,
-                        reflect: a.reflect + g.reflectStack,
+                    const stats = {
+                        dps: baseAtk,
+                        hpMulti: a.hpMulti * g.hpStack, // Corrected from g.defStack to g.hpStack based on GachaManager
+                        goldMulti: a.goldMulti * (1 + g.goldStack), // Corrected from g.coinMulti to (1 + g.goldStack) based on GachaManager
                         critRate: a.critRate + g.critStack,
                         evade: a.evade + g.evadeStack,
-                        bossCoin: a.bossCoin
+                        regen: a.regen + g.regenStack,
+                        tripleGold: g.tripleGold, // Corrected from a.tripleGold to g.tripleGold
+                        extraAttack: g.extraAttack + a.doubleTap + g.doubleStack, // Combined from original and new
+                        reflect: a.reflect + g.reflectStack,
+                        instantKill: a.instantKill + g.instStack, // Added g.instStack
+                        doubleReward: g.doubleReward, // Corrected from a.doubleReward to g.doubleReward
+                        bossCoin: a.bossCoin,
+                        // 引き渡すためのシナジー変数
+                        giantKiller: g.giantKiller,
+                        executioner: g.executioner,
+                        lastStand: g.lastStand
                     };
+
+                    return stats;
                 } catch (e) {
                     console.error("Stats calculation error:", e);
                     return { dps: 10, goldMulti: 1, hpMulti: 1 };
@@ -2623,11 +2707,12 @@
                 const isBoss = (game.stage % 10 === 0);
                 battle.isBoss = isBoss;
 
-                // 150階以降の緩和策：HPスケーリング係数をさらに微減
-                let baseScaling = game.stage < 150 ? 1.25 : 1.08;
-                let hp = 50 * Math.pow(baseScaling, game.stage - 1);
-                if (game.stage >= 150) {
-                    hp = 50 * Math.pow(1.25, 149) * Math.pow(1.08, game.stage - 150);
+                // 4. 敵HP上昇曲線の微調整（140階以降をマイルドな1.15倍へ）
+                let hp;
+                if (game.stage < 140) {
+                    hp = 50 * Math.pow(1.20, Math.max(0, game.stage - 1));
+                } else {
+                    hp = 50 * Math.pow(1.20, 139) * Math.pow(1.15, game.stage - 140);
                 }
 
                 if (isBoss) {
@@ -2807,11 +2892,28 @@
                 }
 
                 let dps = s.dps;
-                if (Math.random() < s.extraAttack) dps *= 2;
+                if (Math.random() < s.extraAttack) {
+                    // 追加攻撃（太陽の杖など）による最終ダメージ乗算化
+                    dps *= 2.0;
+                }
 
                 let isCrit = false;
                 if (Math.random() < s.critRate) {
-                    dps *= 3;
+                    // 3. クリティカルダメージの最終乗算化
+                    // 基本クリティカルダメージは最終値の3倍
+                    let critMulti = 3.0;
+
+                    // 処刑人の斧：敵のHPが50%以下の時にさらに「乗算」で火力を跳ね上げる
+                    if (battle.enemyMaxHp > 0 && battle.enemyHp / battle.enemyMaxHp <= 0.5) {
+                        // 所持数1につき最終ダメージがさらに+400% (5倍乗算) などの仕様
+                        critMulti *= (1.0 + (s.executioner * 4.0));
+                    }
+
+                    // 【追加】クリティカルダメージの「二階乗（累乗）」
+                    // さらなる超インフレとして、計算された最終クリティカル倍率を「2乗（オプションとして）」して適用する
+                    critMulti = Math.pow(critMulti, 2);
+
+                    dps *= critMulti;
                     isCrit = true;
                 }
 
