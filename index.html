@@ -1471,13 +1471,13 @@
     <script>
         // --- 設定・定数 ---
         const UNIT_TYPES = [
-            { id: 'infantry', name: '歩兵', icon: '🗡️', baseAtk: 10, baseCost: 15, unlockAt: 0 },
-            { id: 'archer', name: '弓兵', icon: '🏹', baseAtk: 35, baseCost: 100, unlockAt: 0 },
-            { id: 'knight', name: '騎士', icon: '🏇', baseAtk: 120, baseCost: 800, unlockAt: 0 },
-            { id: 'samurai', name: '侍', icon: '👘', baseAtk: 500, baseCost: 5000, unlockAt: 0 },
-            { id: 'warrior', name: 'ビッグウォーリア', icon: '🛡️', baseAtk: 2500, baseCost: 50000, unlockAt: 100 },
-            { id: 'golem', name: 'ゴーレム', icon: '🗿', baseAtk: 12000, baseCost: 500000, unlockAt: 200 },
-            { id: 'dragon', name: 'ドラゴンライダー', icon: '🐉', baseAtk: 75000, baseCost: 8000000, unlockAt: 300 }
+            { id: 'infantry', name: '歩兵', icon: '🗡️', baseAtk: 25, baseCost: 15, unlockAt: 0 },
+            { id: 'archer', name: '弓兵', icon: '🏹', baseAtk: 100, baseCost: 100, unlockAt: 0 },
+            { id: 'knight', name: '騎士', icon: '🏇', baseAtk: 400, baseCost: 800, unlockAt: 0 },
+            { id: 'samurai', name: '侍', icon: '👘', baseAtk: 2000, baseCost: 5000, unlockAt: 0 },
+            { id: 'warrior', name: 'ビッグウォーリア', icon: '🛡️', baseAtk: 12000, baseCost: 50000, unlockAt: 100 },
+            { id: 'golem', name: 'ゴーレム', icon: '🗿', baseAtk: 65000, baseCost: 500000, unlockAt: 200 },
+            { id: 'dragon', name: 'ドラゴンライダー', icon: '🐉', baseAtk: 400000, baseCost: 8000000, unlockAt: 300 }
         ];
 
         const RARITIES = {
@@ -1708,11 +1708,23 @@
         // --- ユーティリティ ---
         // 数値をK, M, Bなどの単位付き形式に変換する
         function formatNumber(num) {
+            if (num === undefined || num === null || Number.isNaN(Number(num))) return "0";
+            num = Number(num);
+            if (!Number.isFinite(num)) return "MAX";
             if (num < 1000) return Math.floor(num).toString();
-            const suffixes = ["", "K", "M", "B", "T", "P", "E", "Z"];
+
+            if (num >= 1e18) {
+                return num.toExponential(2).replace('+', '');
+            }
+
+            const suffixes = ["", "K", "M", "B", "T", "P"];
             const i = Math.floor(Math.log10(num) / 3);
-            const val = num / Math.pow(10, i * 3);
-            return (val < 10 ? val.toFixed(2) : val.toFixed(1)) + suffixes[i];
+            if (i < suffixes.length) {
+                const val = num / Math.pow(10, i * 3);
+                return (val < 10 ? val.toFixed(2) : val.toFixed(1)) + suffixes[i];
+            } else {
+                return num.toExponential(2).replace('+', '');
+            }
         }
 
         // --- マネージャー ---
@@ -1931,7 +1943,10 @@
             _getCost(baseCost, currentLv, count, costMultiplier, costCut) {
                 let total = 0;
                 for (let i = 0; i < count; i++) {
-                    total += Math.floor(baseCost * Math.pow(costMultiplier, currentLv + i) * costCut);
+                    let nextCost = Math.floor(baseCost * Math.pow(costMultiplier, currentLv + i) * costCut);
+                    if (Number.isNaN(nextCost) || !Number.isFinite(nextCost)) nextCost = Infinity;
+                    total += nextCost;
+                    if (!Number.isFinite(total)) return Infinity;
                 }
                 return total;
             }
@@ -1940,9 +1955,11 @@
             _getMaxBuy(baseCost, currentLv, maxLimit, costMultiplier, costCut, currentGold) {
                 let count = 0;
                 let tempGold = currentGold;
+                if (!Number.isFinite(tempGold) || Number.isNaN(tempGold)) return 0;
+
                 while (count < maxLimit) {
                     let nextCost = baseCost * Math.pow(costMultiplier, currentLv + count) * costCut;
-                    if (isNaN(nextCost) || nextCost <= 0) break; // NaN保護
+                    if (Number.isNaN(nextCost) || nextCost <= 0 || !Number.isFinite(nextCost)) break; // NaN/Infinity保護
                     let cost = Math.floor(nextCost);
 
                     if (tempGold >= cost && cost > 0) {
@@ -1994,40 +2011,43 @@
                     total += q.baseGps * lv;
                 });
                 const s = this.getStats();
-                return total * s.goldMulti;
+                let gps = total * s.goldMulti;
+                if (Number.isNaN(gps) || !Number.isFinite(gps)) gps = 0;
+                return gps;
             }
             // --- 超インフレ対応ダメージ計算関数（指数・累乗方式） ---
             calculateDamage(baseAtk, lv, a, g, orbs, totalArtifacts, currentStage) {
+                if (Number.isNaN(baseAtk) || baseAtk == null) baseAtk = 10;
+                if (Number.isNaN(lv) || lv == null) lv = 0;
+
                 // 1. レベル・マイルストーンの「累乗（Power）」化
-                // Lv100で10^1=10倍, Lv150で10^2=100倍, Lv200で10^3=1000倍...という指数関数的上昇
+                // 10倍では強すぎるため、1.8倍程度に抑える
                 const milestoneCount = Math.floor(lv / 50);
-                const milestoneMultiplier = Math.pow(10, Math.max(0, milestoneCount - 1));
+                const milestoneMultiplier = Math.pow(1.8, Math.max(0, milestoneCount - 1));
 
                 // 2. 宝物所持数による「コンボ乗算」
-                // 所持しているすべての宝物の「総数」を指数とし、1.05^N の爆発的掛け算を行う
-                const comboMultiplier = Math.pow(1.05, totalArtifacts);
+                // 1.05倍は総数が増えると指数爆発を起こすため 1.02倍 に緩和
+                const comboMultiplier = Math.pow(1.02, totalArtifacts || 0);
 
                 // 4. ステージ進行ボーナス追加
-                // 進んだステージ数階層分だけ 1.01^N で微量の基礎火力を底上げ
                 const stageMultiplier = Math.pow(1.01, currentStage || 1);
 
                 // 宝物計算の「分離乗算」 (グループ別に乗算枠を構築)
-                // A: 全体攻撃UPグループ (基礎加算の合計、ガチャの加算含む)
-                const groupA_Sum = (2.0 + a.atkAdd) * g.atkStack;
-                // B: 属性/クラス特攻やレア宝物グループ合計
-                const groupB_Sum = Math.max(1.0, a.atkMulti);
-                // C: オーブ等その他の乗算
-                const groupC_Sum = 1.0 + (orbs * 0.05);
+                const groupA_Sum = (2.0 + (a.atkAdd || 0)) * (g.atkStack || 1);
+                const groupB_Sum = Math.max(1.0, (a.atkMulti || 1));
+                const groupC_Sum = 1.0 + ((orbs || 0) * 0.05);
 
                 // 最終攻撃力の算出 (基礎 × マイルストーン × コンボ × ステージ × A × B × C)
                 let finalDamage = baseAtk * milestoneMultiplier * comboMultiplier * stageMultiplier * groupA_Sum * groupB_Sum * groupC_Sum;
 
                 // ボス特有の乗算
-                if (battle.isBoss) {
-                    finalDamage *= (g.bossAtk * g.giantKiller);
+                if (battle && battle.isBoss) {
+                    finalDamage *= ((g.bossAtk || 1) * (g.giantKiller || 1));
                 }
 
-                if (isNaN(finalDamage) || finalDamage <= 0) finalDamage = 10;
+                if (Number.isNaN(finalDamage) || finalDamage <= 0 || !Number.isFinite(finalDamage)) {
+                    finalDamage = baseAtk;
+                }
 
                 return finalDamage;
             }
@@ -2059,7 +2079,7 @@
                         }
                     });
 
-                    if (baseAtk === 0 || isNaN(baseAtk)) baseAtk = 10;
+                    if (Number.isNaN(baseAtk) || baseAtk <= 0) baseAtk = 10;
 
                     // --- 背水の陣バフ（種類が少ないほど強力、1種の時5倍、2種で4倍... 5種以上で1倍） ---
                     let lastStandMulti = 1.0;
@@ -2433,9 +2453,14 @@
             document.getElementById('dps-val').textContent = formatNumber(s.dps);
 
             // Bonus計算: baseAtkSumが0の場合は初期攻撃力で代替し、0除算を防止
-            const baseAtkSum = UNIT_TYPES.reduce((acc, t) => acc + (t.baseAtk * 1.5) * (game.units[t.id] || 0), 0);
+            let baseAtkSum = UNIT_TYPES.reduce((acc, t) => acc + (t.baseAtk * 1.5) * (game.units[t.id] || 0), 0);
+            if (Number.isNaN(baseAtkSum) || baseAtkSum < 0) baseAtkSum = 1;
+
             if (baseAtkSum > 0) {
-                document.getElementById('multi-val').textContent = `x${(s.dps / baseAtkSum).toFixed(1)}`;
+                let multi = s.dps / baseAtkSum;
+                if (Number.isNaN(multi)) multi = 1.0;
+                if (!Number.isFinite(multi)) multi = 9999.9;
+                document.getElementById('multi-val').textContent = `x${multi.toFixed(1)}`;
             } else {
                 document.getElementById('multi-val').textContent = 'x1.0';
             }
@@ -2707,13 +2732,18 @@
                 const isBoss = (game.stage % 10 === 0);
                 battle.isBoss = isBoss;
 
-                // 4. 敵HP上昇曲線の微調整（140階以降をマイルドな1.15倍へ）
+                // 4. 敵HP上昇曲線の微調整（160階以降もインフレ対策しつつマイルドに）
                 let hp;
-                if (game.stage < 140) {
+                if (game.stage < 160) {
                     hp = 50 * Math.pow(1.20, Math.max(0, game.stage - 1));
+                } else if (game.stage < 500) {
+                    hp = 50 * Math.pow(1.20, 159) * Math.pow(1.10, game.stage - 160);
                 } else {
-                    hp = 50 * Math.pow(1.20, 139) * Math.pow(1.15, game.stage - 140);
+                    // STAGE 500以降は急激なInfinity到達を避けるためさらに緩やかに
+                    hp = 50 * Math.pow(1.20, 159) * Math.pow(1.10, 340) * Math.pow(1.05, game.stage - 500);
                 }
+
+                if (Number.isNaN(hp) || !Number.isFinite(hp)) hp = 1e300; // Infinity防止
 
                 if (isBoss) {
                     hp *= 10;
@@ -2918,7 +2948,7 @@
                 }
 
                 // 防御的処理：dpsがNaNにならないよう保証
-                if (isNaN(dps) || dps < 0) dps = 0;
+                if (Number.isNaN(dps) || !Number.isFinite(dps) || dps < 0) dps = 0;
 
                 battle.enemyHp -= dps * dt;
 
@@ -2944,7 +2974,7 @@
                     if (Math.random() < s.tripleGold) g *= 3;
                     if (Math.random() < s.doubleReward) g *= 2;
 
-                    if (isNaN(g) || g < 0) g = 0;
+                    if (Number.isNaN(g) || !Number.isFinite(g) || g < 0) g = 0;
 
                     game.gold += g;
                     game.dailyData.dailyGoldEarned = (game.dailyData.dailyGoldEarned || 0) + g;
@@ -2955,7 +2985,7 @@
 
                 // 被ダメージ処理
                 let dmg = Math.max(0, (2 + game.stage * 1.5) * dt);
-                if (isNaN(dmg)) dmg = 1;
+                if (Number.isNaN(dmg) || !Number.isFinite(dmg)) dmg = 1;
 
                 if (Math.random() >= s.evade) {
                     battle.allyHp -= dmg;
