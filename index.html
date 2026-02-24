@@ -2053,7 +2053,7 @@
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`${t}-tab`).classList.add('active');
-            if (event && event.currentTarget) event.currentTarget.classList.add('active');
+            if (typeof event !== 'undefined' && event && event.currentTarget) event.currentTarget.classList.add('active');
 
             // 全タブで統一したスクロール領域（unit-modeクラスは不要に）
             if (t === 'daily') renderDailyMissions();
@@ -2353,7 +2353,7 @@
             });
 
             // Return Orbs
-            const pendingOrbs = Math.floor(game.stage / 10);
+            const pendingOrbs = Math.floor((game.stage / 10) * game.gachaMgr.getBonuses().orbStack);
             const pendingEl = document.getElementById('pending-orbs');
             if (pendingEl) pendingEl.textContent = pendingOrbs.toLocaleString();
             const returnEl = document.getElementById('return-btn');
@@ -2561,7 +2561,7 @@
             if (!confirm("本当に帰還しますか？ 現在のゴールドとステージ進行度はリセットされます。")) return;
 
             try {
-                const orbs = Math.floor(game.stage / 10);
+                const orbs = Math.floor((game.stage / 10) * game.gachaMgr.getBonuses().orbStack);
                 console.log("① 獲得予定の宝物数: " + orbs);
 
                 // 獲得した宝物の抽選 (1ステージにつき1つ)
@@ -2618,7 +2618,7 @@
                 console.log("② 加算後の総オーブ数: " + game.orbs);
 
                 // リセット処理
-                game.stage = 1;
+                game.stage = 0; // 後のspawnEnemy()で+1されてステージ1になるよう修正
                 game.gold = 0;
                 game.killsInSession = 0;
 
@@ -2661,12 +2661,16 @@
         function loop() {
             try {
                 const now = Date.now();
-                const dt = ((now - battle.lastTick) / 1000) * game.gameSpeed; // 倍速適用のデルタタイム
+                const delta = (now - battle.lastTick) / 1000;
                 battle.lastTick = now;
+
+                // 長時間放置対策：バトルの進行限界を最大1秒に制限、内政は実時間そのまま計算
+                const battleDelta = Math.min(delta, 1.0);
+                const dt = battleDelta * game.gameSpeed;
 
                 // 内政ゴールド生産
                 const gps = game.getGps();
-                game.gold += gps * dt;
+                game.gold += gps * delta * game.gameSpeed;
 
                 // 内政プログレスバーの更新（視覚的な演出）
                 QUEST_DATA.forEach(q => {
@@ -2833,6 +2837,7 @@
         }
 
         function updateDailyResetTimer() {
+            game.checkDailyReset(); // 0時またぎ自動リセット適応
             const el = document.getElementById('daily-reset-timer');
             if (!el) return;
             const now = new Date();
