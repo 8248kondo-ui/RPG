@@ -1323,6 +1323,7 @@
             <div id="quests-tab" class="tab-content">
                 <div class="shop-header">
                     <span class="shop-title">内政・クエスト</span>
+                    <button class="toggle-btn" id="quest-buy-mode-btn" onclick="toggleQuestBuyMode()">強化: x1</button>
                 </div>
                 <p style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 10px;">
                     クエストを強化することで、戦闘中も自動的にゴールドが生産されます (GPS)。
@@ -1858,6 +1859,7 @@
                 this.artMgr = new ArtifactManager();
                 this.gachaMgr = new GachaManager();
                 this.buyMode = 1;
+                this.questBuyMode = 1;
                 this.totalKills = 0;
                 this.killsInSession = 0;
                 this.gameSpeed = 1.0;
@@ -1914,18 +1916,45 @@
             }
             getMaxBuy(id) {
                 const type = UNIT_TYPES.find(u => u.id === id);
+                if (!type) return 0;
                 const costCut = this.gachaMgr.getBonuses().costCut;
-                let count = 0; let tempGold = this.gold; let lv = this.units[id];
-                while (true) {
-                    let cost = Math.floor(type.baseCost * Math.pow(1.15, lv + count) * costCut);
-                    if (tempGold >= cost && count < 1000) { tempGold -= cost; count++; } else break;
+                let count = 0; let tempGold = this.gold; let lv = this.units[id] || 0;
+                while (count < 1000) { // 安全装置: 最大1000個まで
+                    // 浮動小数点誤差とNaNを防ぐ
+                    let nextCost = type.baseCost * Math.pow(1.15, lv + count) * costCut;
+                    if (isNaN(nextCost) || nextCost <= 0) break;
+                    let cost = Math.floor(nextCost);
+                    if (tempGold >= cost) {
+                        tempGold -= cost;
+                        count++;
+                    } else {
+                        break;
+                    }
                 }
                 return count;
             }
-            getQuestCost(id) {
+            getQuestCost(id, count = 1) {
                 const q = QUEST_DATA.find(x => x.id === id);
-                const lv = this.quests[id] || 0;
-                return Math.floor(q.baseCost * Math.pow(1.2, lv));
+                let lv = this.quests[id] || 0;
+                let total = 0;
+                for (let i = 0; i < count; i++) {
+                    total += Math.floor(q.baseCost * Math.pow(1.2, lv + i));
+                }
+                return total;
+            }
+            getMaxQuestBuy(id, maxLimit) {
+                const q = QUEST_DATA.find(x => x.id === id);
+                let count = 0; let tempGold = this.gold; let lv = this.quests[id] || 0;
+                while (count < maxLimit) {
+                    let cost = Math.floor(q.baseCost * Math.pow(1.2, lv + count));
+                    if (tempGold >= cost && cost > 0) {
+                        tempGold -= cost;
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                return count;
             }
             getGps() {
                 let total = 0;
@@ -1951,7 +1980,7 @@
 
                     let dps = (baseAtk * (2.0 + a.atkAdd) * a.atkMulti * g.atkStack) * orbBonus;
                     if (battle.isBoss) dps *= g.bossAtk;
-                    if (isNaN(dps)) dps = 10;
+                    if (isNaN(dps) || dps <= 0) dps = 10; // DPS下限とNaNガード
 
                     return {
                         dps,
@@ -2064,6 +2093,13 @@
             else if (game.buyMode === 10) game.buyMode = -1;
             else game.buyMode = 1;
             document.getElementById('buy-mode-btn').textContent = `購入: ${game.buyMode === -1 ? 'MAX' : 'x' + game.buyMode}`;
+            updateUI();
+        }
+
+        function toggleQuestBuyMode() {
+            if (game.questBuyMode === 1) game.questBuyMode = 10;
+            else game.questBuyMode = 1;
+            document.getElementById('quest-buy-mode-btn').textContent = `強化: x${game.questBuyMode}`;
             updateUI();
         }
 
@@ -2230,8 +2266,30 @@
 
         function moveTooltip(e) {
             const tt = document.getElementById('custom-tooltip');
-            tt.style.left = (e.clientX + 15) + 'px';
-            tt.style.top = (e.clientY + 15) + 'px';
+            // SafeAreaおよび画面端はみ出し防止のための動的Pivot計算
+            const ttWidth = tt.offsetWidth || 250;
+            const ttHeight = tt.offsetHeight || 150;
+            const margin = 15;
+
+            let leftPos = e.clientX + margin;
+            let topPos = e.clientY + margin;
+
+            // 右端にはみ出す場合は左側に表示
+            if (leftPos + ttWidth > window.innerWidth) {
+                leftPos = e.clientX - ttWidth - margin;
+            }
+
+            // 下端にはみ出す場合は上側に表示
+            if (topPos + ttHeight > window.innerHeight) {
+                topPos = e.clientY - ttHeight - margin;
+            }
+
+            // それでも左端や上端にはみ出す場合の最終フェイルセーフ
+            leftPos = Math.max(margin, leftPos);
+            topPos = Math.max(margin, topPos);
+
+            tt.style.left = leftPos + 'px';
+            tt.style.top = topPos + 'px';
         }
 
         function hideTooltip() { document.getElementById('custom-tooltip').style.display = 'none'; }
@@ -2300,29 +2358,45 @@
 
             // Shop Buttons
             UNIT_TYPES.forEach(type => {
-                const cost = game.getUnitCost(type.id, game.buyMode === -1 ? game.getMaxBuy(type.id) : game.buyMode);
+                const maxBuyCount = game.getMaxBuy(type.id);
+                // bCount: MAXモードの場合は買える最大数（ただし最低1とする表示用）、通常モードはそのままの数
+                const bCount = game.buyMode === -1 ? Math.max(1, maxBuyCount) : game.buyMode;
+                const cost = game.getUnitCost(type.id, bCount);
+
                 const lvEl = document.getElementById(`lv-${type.id}`);
                 const costEl = document.getElementById(`cost-${type.id}`);
                 if (lvEl) lvEl.textContent = game.units[type.id].toLocaleString();
                 if (costEl) costEl.textContent = formatNumber(cost);
+
                 const btn = document.getElementById(`btn-${type.id}`);
-                if (btn) btn.disabled = game.gold < cost;
+                // 購入可能な数がない（MAXモードで0個）、または所持金が足りない場合に非活性化
+                if (btn) {
+                    btn.disabled = (game.buyMode === -1 && maxBuyCount === 0) || (game.gold < cost);
+                }
             });
 
             QUEST_DATA.forEach(q => {
                 const s = game.getStats();
-                const cost = game.getQuestCost(q.id);
+                // Quest buy mode logic: if x10 is selected, calculate max affordable up to 10
+                let qCount = game.questBuyMode;
+                let actualQCount = game.getMaxQuestBuy(q.id, qCount);
+                if (game.questBuyMode === 10 && actualQCount === 0) actualQCount = 1; // 1個も買えない時は1個の値段を表示
+
+                const cost = game.getQuestCost(q.id, actualQCount);
                 const qlvEl = document.getElementById(`qlv-${q.id}`);
                 const qcostEl = document.getElementById(`qcost-${q.id}`);
                 if (qlvEl) qlvEl.textContent = (game.quests[q.id] || 0).toLocaleString();
                 if (qcostEl) qcostEl.textContent = formatNumber(cost);
                 const qbtn = document.getElementById(`qbtn-${q.id}`);
-                if (qbtn) qbtn.disabled = game.gold < cost;
+                if (qbtn) {
+                    qbtn.disabled = game.gold < cost;
+                    qbtn.textContent = `強化${game.questBuyMode === 10 ? ' (最大' + actualQCount + ')' : ''}`;
+                }
 
                 // 次のレベルでのGPS増加量を計算して表示
                 const incEl = document.getElementById(`qinc-${q.id}`);
                 if (incEl) {
-                    const inc = q.baseGps * s.goldMulti;
+                    const inc = q.baseGps * s.goldMulti * actualQCount;
                     incEl.textContent = `+${formatNumber(inc)}`;
                 }
             });
@@ -2393,11 +2467,21 @@
         }
 
         function buyQuest(id) {
-            const cost = game.getQuestCost(id);
+            let qCount = game.questBuyMode;
+            let actualCount = game.getMaxQuestBuy(id, qCount);
+            if (actualCount < 1) return;
+
+            const cost = game.getQuestCost(id, actualCount);
             if (game.gold >= cost) {
                 game.gold -= cost;
-                game.quests[id] = (game.quests[id] || 0) + 1;
-                game.dailyData.dailyQuestBuys = (game.dailyData.dailyQuestBuys || 0) + 1;
+                game.quests[id] = (game.quests[id] || 0) + actualCount;
+                game.dailyData.dailyQuestBuys = (game.dailyData.dailyQuestBuys || 0) + actualCount;
+
+                // 演出を1回分再生（処理落ち防止）
+                if (typeof event !== 'undefined' && event.currentTarget) {
+                    createAtkUpPop(event.currentTarget);
+                }
+
                 updateUI();
                 game.save();
             }
@@ -2653,8 +2737,13 @@
         function closeResult() {
             document.getElementById('result-overlay').style.display = 'none';
             spawnEnemy(); // 最初の敵をリセット後のステージ1用に生成
+
+            // 帰還直後のボーナス値UI同期ズレ対策:
+            // アーティファクトやガチャボーナスのキャッシュ等がもしあればクリアし、明示的に再計算させておく（今回はgetterなので直接取得）
+            game.getStats();
+
             initUI();
-            updateUI();
+            updateUI(); // ここで確実な最新のボーナス値で画面が再描画される
             game.save();
         }
 
@@ -2711,10 +2800,13 @@
                     isCrit = true;
                 }
 
+                // 防御的処理：dpsがNaNにならないよう保証
+                if (isNaN(dps) || dps < 0) dps = 0;
+
                 battle.enemyHp -= dps * dt;
 
                 // ヒット演出：倍速時も負荷を下げつつ表示
-                if (now % Math.floor(600 / game.gameSpeed) < 35) {
+                if (now % Math.floor(600 / game.gameSpeed) < 35 && dps > 0) {
                     const popVal = isCrit ? `CRITICAL! ${formatNumber(dps / 2)}` : formatNumber(dps / 2);
                     createPop(popVal, false, isCrit);
                     document.getElementById('enemy-entity').classList.add('hit-flash');
@@ -2729,11 +2821,14 @@
                     if (battle.isBoss) game.dailyData.dailyBossKills = (game.dailyData.dailyBossKills || 0) + 1;
                     game.checkMissions();
 
-                    let g = 10 * Math.pow(1.2, game.stage - 1) * s.goldMulti;
+                    let g = 10 * Math.pow(1.2, Math.max(0, game.stage - 1)) * s.goldMulti;
                     if (battle.isBoss) g *= (5 * s.bossCoin);
                     if (battle.isRare) g *= 20;
                     if (Math.random() < s.tripleGold) g *= 3;
                     if (Math.random() < s.doubleReward) g *= 2;
+
+                    if (isNaN(g) || g < 0) g = 0;
+
                     game.gold += g;
                     game.dailyData.dailyGoldEarned = (game.dailyData.dailyGoldEarned || 0) + g;
                     if (game.stage > (game.dailyData.dailyMaxStage || 0)) game.dailyData.dailyMaxStage = game.stage;
@@ -2741,8 +2836,10 @@
                     spawnEnemy();
                 }
 
-                // 被ダメージ
-                let dmg = (2 + game.stage * 1.5) * dt;
+                // 被ダメージ処理
+                let dmg = Math.max(0, (2 + game.stage * 1.5) * dt);
+                if (isNaN(dmg)) dmg = 1;
+
                 if (Math.random() >= s.evade) {
                     battle.allyHp -= dmg;
                     if (s.reflect > 0) battle.enemyHp -= (dmg * s.reflect * 10);
@@ -2766,10 +2863,15 @@
 
                     // ステージダウンの確実な反映：
                     // spawnEnemyは実行時にstageを+1するため、2つ戻してから呼ぶことで実質1つ戻る
-                    game.stage = Math.max(0, game.stage - 2);
+                    // 万が一NaNなら0ベースにする
+                    let currentStage = isNaN(game.stage) ? 1 : game.stage;
+
+                    // フェニックスの羽根等の特例処理がもしあればここだが、基本はマイナス階層
+                    game.stage = Math.max(0, currentStage - 2);
                     spawnEnemy(); // ここで新たな敵（雑魚）が生成され、isBossも再計算される
 
-                    battle.allyHp = battle.allyMaxHp;
+                    // 味方HPの確実な復帰
+                    battle.allyHp = isNaN(battle.allyMaxHp) || battle.allyMaxHp <= 0 ? 200 : battle.allyMaxHp;
                 }
 
                 updateUI();
