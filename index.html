@@ -2373,6 +2373,13 @@
                 if (btn) {
                     btn.disabled = (game.buyMode === -1 && maxBuyCount === 0) || (game.gold < cost);
                 }
+
+                // ユニットの出現（アンロック）条件を毎フレーム動的に判定し、UIに反映
+                const card = document.getElementById(`unit-card-${type.id}`);
+                if (card) {
+                    // 現在のステージ数がunlockAt以上なら表示、未満なら非表示
+                    card.style.display = game.stage >= type.unlockAt ? 'flex' : 'none';
+                }
             });
 
             QUEST_DATA.forEach(q => {
