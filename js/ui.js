@@ -273,8 +273,8 @@ function updateUI() {
     DOM.gpsVal.textContent = formatNumber(game.getGps());
     DOM.dpsVal.textContent = formatNumber(s.dps);
 
-    let baseAtkSum = UNIT_TYPES.reduce((acc, t) => acc + (t.baseAtk * 1.5) * (game.units[t.id] || 0), 0);
-    if (baseAtkSum > 0) DOM.multiVal.textContent = `x${(s.dps / baseAtkSum).toFixed(1)}`;
+    let rawAtk = UNIT_TYPES.reduce((acc, t) => acc + t.baseAtk * (game.units[t.id] || 0), 0);
+    if (rawAtk > 0) DOM.multiVal.textContent = `x${(s.dps / rawAtk).toFixed(1)}`;
     else DOM.multiVal.textContent = 'x1.0';
 
     DOM.allyHpBar.style.width = Math.max(0, (battle.allyHp / battle.allyMaxHp) * 100) + '%';
@@ -343,6 +343,23 @@ function updateUI() {
         if (prog) prog.style.width = (Math.min(game.totalKills / m.target, 1) * 100) + '%';
         if (val) val.textContent = Math.min(game.totalKills, m.target).toLocaleString();
     });
+
+    // === シナジー描画 ===
+    if (DOM.synergyList) {
+        DOM.synergyList.innerHTML = '';
+        SYNERGY_DATA.forEach(syn => {
+            const isActive = syn.req.every(unitId => (game.units[unitId] || 0) > 0);
+            const badge = document.createElement('div');
+            badge.className = 'synergy-badge' + (isActive ? ' active' : '');
+            const reqNames = syn.req.map(uid => {
+                const u = UNIT_TYPES.find(t => t.id === uid);
+                return u ? u.name : uid;
+            }).join(' + ');
+            badge.innerHTML = `<span style="font-weight:bold;">${syn.name}</span> <span style="font-size:0.65rem; opacity:0.8;">${reqNames}</span><br><span style="font-size:0.6rem;">${syn.desc}</span>`;
+            badge.title = `${syn.name} ${syn.desc} (必要: ${reqNames})`;
+            DOM.synergyList.appendChild(badge);
+        });
+    }
 
     const pendingOrbs = Math.floor((game.stage / 10) * s.orbStack); // orbStack is from Stats in full version
     const pendingEl = document.getElementById('pending-orbs');

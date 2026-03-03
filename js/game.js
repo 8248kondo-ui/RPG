@@ -354,7 +354,8 @@ class Game {
                 bossCoin: a.bossCoin,
                 giantKiller: g.giantKiller,
                 executioner: g.executioner,
-                lastStand: g.lastStand
+                lastStand: g.lastStand,
+                orbStack: g.orbStack || 1
             };
         } catch (e) {
             console.error("Stats calculation error:", e);
