@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idle Rogue Rich - プロフェッショナル・アップデート</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <div class="game-wrapper" id="game-wrapper">
+        <div class="help-btn" onclick="openHelp()">?</div>
+
+        <div class="battle-screen" id="battle-screen">
+            <!-- アクティブスキルバー -->
+            <div class="skill-bar" id="skill-bar">
+                <div class="skill-btn" id="btn-thunder" onclick="useSkill('thunder')" title="サンダー: 敵全体に大ダメージ (CD:60秒)">
+                    ⚡
+                    <div class="skill-cd-overlay" id="cd-thunder"></div>
+                </div>
+                <div class="skill-btn" id="btn-heal" onclick="useSkill('heal')" title="ヒール: HP全回復 (CD:120秒)">
+                    🩹
+                    <div class="skill-cd-overlay" id="cd-heal"></div>
+                </div>
+                <div class="skill-btn" id="btn-haste" onclick="useSkill('haste')" title="ヘイスト: 10秒間、攻撃速度2倍 (CD:180秒)">
+                    ⏳
+                    <div class="skill-cd-overlay" id="cd-haste"></div>
+                </div>
+            </div>
+
+            <div id="stage-down-overlay" class="stage-down-overlay">
+                <div class="stage-down-text">⚠ Stage Down ⚠</div>
+            </div>
+            <div id="stage-down-crack" class="stage-down-crack"></div>
+            <div id="boss-banner" class="boss-banner">BOSS STAGE</div>
+
+            <div class="speed-controls" id="speed-controls">
+                <button class="speed-btn active" onclick="setSpeed(1)">x1</button>
+                <button class="speed-btn" id="speed-x2" onclick="setSpeed(2)">x2</button>
+                <button class="speed-btn" id="speed-x3" onclick="setSpeed(3)">x3</button>
+            </div>
+
+            <div class="stage-info" id="stage-info-display">STAGE <span id="stage-num">1</span></div>
+            <div class="units-container">
+                <div class="entity walking" id="ally-entity">
+                    <div class="avatar">🛡️</div>
+                    <div class="hp-container">
+                        <div id="ally-hp-bar" class="hp-fill hp-ally"></div>
+                    </div>
+                </div>
+                <div class="entity" id="enemy-entity">
+                    <div class="avatar" id="enemy-avatar">👹</div>
+                    <div class="hp-container">
+                        <div id="enemy-hp-bar" class="hp-fill hp-enemy"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="management-area">
+            <!-- 新しい固定実績バー -->
+            <div class="mission-bar" onclick="openMissions()">
+                <div class="mission-summary-text" id="mission-summary-text">
+                    🎯 ターゲット: 敵を100体討伐 (0/100)
+                </div>
+                <div class="mission-reward-badge">
+                    <span>🎁</span> <span id="mission-reward-val">50</span>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('units')">兵士</button>
+                <button class="tab-btn" onclick="showTab('quests')">内政</button>
+                <button class="tab-btn" onclick="showTab('artifacts')">宝物</button>
+                <button class="tab-btn" onclick="showTab('gacha')">ガチャ</button>
+                <button class="tab-btn" onclick="showTab('daily')">実績</button>
+            </div>
+
+            <!-- クラスシナジー表示ボード -->
+            <div class="synergy-board" id="synergy-board">
+                <div class="synergy-title"><span>🌟 発動中のシナジー</span></div>
+                <div class="synergy-list" id="synergy-list">
+                    <!-- JSにて動的生成 -->
+                </div>
+            </div>
+
+            <div id="units-tab" class="tab-content active">
+                <div class="shop-header">
+                    <span class="shop-title">雇用・訓練</span>
+                    <button class="toggle-btn" id="buy-mode-btn" onclick="toggleBuyMode()">購入: x1</button>
+                </div>
+                <div id="unit-list"></div>
+            </div>
+
+            <div id="quests-tab" class="tab-content">
+                <div class="shop-header">
+                    <span class="shop-title">内政・クエスト</span>
+                    <button class="toggle-btn" id="quest-buy-mode-btn" onclick="toggleQuestBuyMode()">強化: x1</button>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 10px;">
+                    クエストを強化することで、戦闘中も自動的にゴールドが生産されます (GPS)。
+                </p>
+                <div id="quest-list"></div>
+            </div>
+
+            <div id="artifacts-tab" class="tab-content">
+                <div class="artifact-filter-area">
+                    <span style="font-size:0.8rem;">📦 宝物コレクション</span>
+                    <select class="rarity-select" id="rarity-filter" onchange="filterArtifacts()">
+                        <option value="ALL">すべて</option>
+                        <option value="L">LEGEND</option>
+                        <option value="SR">SUPER RARE</option>
+                        <option value="HR">HYPER RARE</option>
+                        <option value="R">RARE</option>
+                        <option value="N">NORMAL</option>
+                    </select>
+                </div>
+                <div class="artifact-grid" id="artifact-list">
+                    <!-- JSで動的に追加 -->
+                </div>
+            </div>
+
+            <div id="gacha-tab" class="tab-content">
+                <div class="gacha-layout">
+                    <div class="gacha-top">
+                        <div class="gacha-banner-v2">🌌 神域の宝物典</div>
+                        <div style="font-size: 0.8rem; color: var(--text-dim); max-width: 280px; margin: 0 auto;">
+                            古の神々が遺した秘宝の数々。<br>
+                            オーブを捧げることで、持ち主の魂を恒久的に強化する力の一部を得ることができます。
+                        </div>
+                        <div style="margin-top:20px; font-size:0.75rem; color:var(--accent-primary);">
+                            R以上 30% / HR以上 10% / L 0.5%
+                        </div>
+                    </div>
+                    <div class="gacha-bottom">
+                        <button class="gacha-btn-v2 gacha-btn-1" onclick="pullGacha()">
+                            1回引く (100 Orbs)
+                        </button>
+                        <button class="gacha-btn-v2 gacha-btn-10" onclick="pullGacha10()">
+                            10回引く (1000 Orbs)
+                        </button>
+                    </div>
+                    <div style="margin-top:15px;">
+                        <div style="font-size:0.85rem; color:var(--text-dim); margin-bottom:10px; padding:0 20px;">📦
+                            所持アイテム</div>
+                        <div class="gacha-owned" id="gacha-owned-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 実績（デイリー）タブ ===== -->
+            <div id="daily-tab" class="tab-content">
+                <div class="shop-header">
+                    <span class="shop-title">🏆 デイリー実績</span>
+                </div>
+                <div class="daily-reset-info" id="daily-reset-timer">次のリセットまで: --:--:--</div>
+                <div id="daily-mission-list"></div>
+            </div>
+
+            <div class="footer-stats">
+                <div class="stat-box">
+                    <span class="stat-lbl">Gold</span>
+                    <span id="gold-val" class="stat-val color-gold">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-lbl">Orbs</span>
+                    <span id="orb-val" class="stat-val color-orb">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-lbl">GPS</span>
+                    <span id="gps-val" class="stat-val color-gold">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-lbl">DPS</span>
+                    <span id="dps-val" class="stat-val">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-lbl">Bonus</span>
+                    <span id="multi-val" class="stat-val">x1.0</span>
+                </div>
+            </div>
+
+            <button class="return-btn" id="return-btn" onclick="handleReturn()">
+                帰還してオーブを獲得 (<span id="pending-orbs">0</span>)
+            </button>
+        </div>
+
+        <!-- レジェンド詳細ポップアップ -->
+        <div id="legend-detail" class="legend-popup" onclick="this.style.display='none'">
+            <div id="legend-detail-content"></div>
+            <button class="buy-btn" style="margin-top:15px; width:100%;">閉じる</button>
+        </div>
+
+        <!-- 実績詳細モーダル -->
+        <div id="mission-modal" class="mission-modal" onclick="event.target === this && closeMissions()">
+            <div class="mission-modal-content" onclick="event.stopPropagation()">
+                <h2 style="margin-top:0; display:flex; justify-content:space-between; align-items:center;">
+                    🎯 ステージ実績
+                    <span style="font-size:1rem; color:var(--text-dim); cursor:pointer;"
+                        onclick="closeMissions()">✕</span>
+                </h2>
+                <div id="mission-list-full"></div>
+            </div>
+        </div>
+
+        <div id="result-overlay" class="overlay">
+            <div class="result-card">
+                <h2 style="color:var(--accent-primary); margin-top:0;" id="res-title">帰還達成</h2>
+                <div id="res-stats-area" style="margin: 25px 0; text-align: left; font-size: 1.1rem;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">到達ステージ: <span
+                            id="res-stage">1</span></div>
+                    <div style="display:flex; justify-content:space-between; color:var(--orb); font-weight:bold;">獲得オーブ:
+                        <span id="res-orbs">0</span>
+                    </div>
+                </div>
+                <div class="res-art-container">
+                    <div style="font-size:0.8rem; color:var(--text-dim); margin-bottom:10px;">獲得した宝物</div>
+                    <div id="res-art-list"></div>
+                </div>
+                <button class="gacha-btn" onclick="closeResult()"
+                    style="background:var(--accent-primary); color:var(--bg-color);">次元を越える</button>
+            </div>
+        </div>
+
+        <!-- ヘルプモーダル -->
+        <div id="help-modal" class="modal" onclick="closeHelp()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <span class="close-modal" onclick="closeHelp()">&times;</span>
+                <div class="help-content">
+                    <h3>遊び方</h3>
+                    <p><b>1. 兵士を雇おう:</b> 獲得したゴールドで兵士を雇用し、DPSを上げてください。</p>
+                    <p><b>2. ステージを進もう:</b> 敵を倒すと自動的に次のステージへ進みます。10ステージごとにボスが出現します。</p>
+                    <p><b>3. 帰還して強化:</b> 限界を感じたら「帰還」しましょう。ステージ数に応じたオーブを獲得し、アーティファクトで永久強化できます。</p>
+                    <p><b>4. ガチャで秘宝入手:</b> オーブを使い、強力な特殊能力を持つアーティファクトを引き当てましょう。</p>
+                    <p><b>5. レア敵出現:</b> 低確率で大量のゴールドを落とすレア敵が出現します！</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="custom-tooltip" class="tooltip"></div>
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
