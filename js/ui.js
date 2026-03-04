@@ -273,9 +273,7 @@ function updateUI() {
     DOM.gpsVal.textContent = formatNumber(game.getGps());
     DOM.dpsVal.textContent = formatNumber(s.dps);
 
-    let rawAtk = UNIT_TYPES.reduce((acc, t) => acc + t.baseAtk * (game.units[t.id] || 0), 0);
-    if (rawAtk > 0) DOM.multiVal.textContent = `x${(s.dps / rawAtk).toFixed(1)}`;
-    else DOM.multiVal.textContent = 'x1.0';
+    DOM.multiVal.textContent = `x${s.totalMultiplier.toFixed(1)}`;
 
     DOM.allyHpBar.style.width = Math.max(0, (battle.allyHp / battle.allyMaxHp) * 100) + '%';
     DOM.enemyHpBar.style.width = Math.max(0, (battle.enemyHp / battle.enemyMaxHp) * 100) + '%';

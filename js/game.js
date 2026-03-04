@@ -286,7 +286,7 @@ class Game {
         return gps;
     }
 
-    calculateDamage(baseAtk, lv, a, g, orbs, totalArtifacts, currentStage) {
+    calculateDamage(baseAtk, lv, a, g, orbs, totalArtifacts, currentStage, synergyAtkMulti) {
         if (Number.isNaN(baseAtk) || baseAtk == null) baseAtk = 10;
         const milestoneCount = Math.floor(lv / 50);
         const milestoneMultiplier = Math.pow(1.5, Math.max(0, milestoneCount - 1));
@@ -297,7 +297,7 @@ class Game {
         const groupB_Sum = Math.max(1.0, (a.atkMulti || 1));
         const groupC_Sum = 1.0 + ((orbs || 0) * 0.05);
 
-        let finalDamage = baseAtk * milestoneMultiplier * comboMultiplier * stageMultiplier * groupA_Sum * groupB_Sum * groupC_Sum;
+        let finalDamage = baseAtk * milestoneMultiplier * comboMultiplier * stageMultiplier * groupA_Sum * groupB_Sum * groupC_Sum * (synergyAtkMulti || 1.0);
 
         if (battle && battle.isBoss) {
             finalDamage *= ((g.bossAtk || 1) * (g.giantKiller || 1));
@@ -321,12 +321,22 @@ class Game {
             let baseAtk = 0;
             let activeUnitTypes = 0;
 
+            let synergyAtkMulti = 1.0;
+            let synergyCritAdd = 0;
+            SYNERGY_DATA.forEach(syn => {
+                const isActive = syn.req.every(unitId => (this.units[unitId] || 0) > 0);
+                if (isActive) {
+                    if (syn.id === 'bushido') synergyAtkMulti *= 1.5;
+                    if (syn.id === 'dragon_eye') synergyCritAdd += 0.20;
+                }
+            });
+
             UNIT_TYPES.forEach(t => {
                 const lv = this.units[t.id] || 0;
                 if (lv > 0) {
                     activeUnitTypes++;
                     let unitBase = t.baseAtk * lv;
-                    let unitDps = this.calculateDamage(unitBase, lv, a, g, this.orbs, totalArtifacts, this.stage);
+                    let unitDps = this.calculateDamage(unitBase, lv, a, g, this.orbs, totalArtifacts, this.stage, synergyAtkMulti);
                     baseAtk += unitDps;
                 }
             });
@@ -339,11 +349,15 @@ class Game {
             }
             baseAtk *= lastStandMulti;
 
+            const groupA_Sum = (2.0 + (a.atkAdd || 0)) * (g.atkStack || 1);
+            const groupB_Sum = Math.max(1.0, (a.atkMulti || 1));
+            const groupC_Sum = 1.0 + ((this.orbs || 0) * 0.05);
+            let totalMultiplier = (groupA_Sum / 2.0) * groupB_Sum * groupC_Sum * synergyAtkMulti * lastStandMulti;
+
             return {
                 dps: baseAtk,
                 hpMulti: a.hpMulti * g.hpStack,
                 goldMulti: a.goldMulti * (1 + g.goldStack),
-                critRate: a.critRate + g.critStack,
                 evade: a.evade + g.evadeStack,
                 regen: a.regen + g.regenStack,
                 tripleGold: g.tripleGold,
@@ -355,11 +369,13 @@ class Game {
                 giantKiller: g.giantKiller,
                 executioner: g.executioner,
                 lastStand: g.lastStand,
-                orbStack: g.orbStack || 1
+                orbStack: g.orbStack || 1,
+                totalMultiplier: totalMultiplier,
+                critRate: a.critRate + g.critStack + synergyCritAdd
             };
         } catch (e) {
             console.error("Stats calculation error:", e);
-            return { dps: 10, goldMulti: 1, hpMulti: 1 };
+            return { dps: 10, goldMulti: 1, hpMulti: 1, totalMultiplier: 1.0, orbStack: 1.0 };
         }
     }
     checkMissions() {
